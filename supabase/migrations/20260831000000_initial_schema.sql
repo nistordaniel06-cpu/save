@@ -238,58 +238,87 @@ ALTER TABLE public.optimization_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.verified_savings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
 
+CREATE OR REPLACE FUNCTION public.get_user_org_ids()
+RETURNS SETOF UUID
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT organization_id FROM public.organization_members WHERE user_id = auth.uid();
+$$;
+
 CREATE OR REPLACE FUNCTION public.is_org_member(target_org_id UUID)
-RETURNS BOOLEAN AS $$
-BEGIN
-    RETURN EXISTS (
-        SELECT 1 FROM public.organization_members
-        WHERE organization_id = target_org_id
-        AND user_id = auth.uid()
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.organization_members
+    WHERE organization_id = target_org_id AND user_id = auth.uid()
+  );
+$$;
 
 -- Drop and Recreate Policies safely
 DROP POLICY IF EXISTS "Users can access their organizations" ON public.organizations;
 CREATE POLICY "Users can access their organizations" ON public.organizations
-    FOR ALL USING (id IN (SELECT organization_id FROM public.organization_members WHERE user_id = auth.uid()));
+    FOR SELECT USING (id IN (SELECT public.get_user_org_ids()) OR is_demo = true);
+
+DROP POLICY IF EXISTS "Users can insert organizations" ON public.organizations;
+CREATE POLICY "Users can insert organizations" ON public.organizations
+    FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can update their organizations" ON public.organizations;
+CREATE POLICY "Users can update their organizations" ON public.organizations
+    FOR UPDATE USING (id IN (SELECT public.get_user_org_ids()));
 
 DROP POLICY IF EXISTS "Users can view members of their organizations" ON public.organization_members;
 CREATE POLICY "Users can view members of their organizations" ON public.organization_members
-    FOR ALL USING (organization_id IN (SELECT organization_id FROM public.organization_members WHERE user_id = auth.uid()));
+    FOR SELECT USING (user_id = auth.uid() OR organization_id IN (SELECT public.get_user_org_ids()));
+
+DROP POLICY IF EXISTS "Users can add organization members" ON public.organization_members;
+CREATE POLICY "Users can add organization members" ON public.organization_members
+    FOR INSERT WITH CHECK (user_id = auth.uid() OR organization_id IN (SELECT public.get_user_org_ids()));
 
 DROP POLICY IF EXISTS "Org members can access suppliers" ON public.suppliers;
 CREATE POLICY "Org members can access suppliers" ON public.suppliers
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
 
 DROP POLICY IF EXISTS "Org members can access documents" ON public.documents;
 CREATE POLICY "Org members can access documents" ON public.documents
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
 
 DROP POLICY IF EXISTS "Org members can access extractions" ON public.document_extractions;
 CREATE POLICY "Org members can access extractions" ON public.document_extractions
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
 
 DROP POLICY IF EXISTS "Org members can access spend records" ON public.spend_records;
 CREATE POLICY "Org members can access spend records" ON public.spend_records
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
 
 DROP POLICY IF EXISTS "Org members can access contracts" ON public.contracts;
 CREATE POLICY "Org members can access contracts" ON public.contracts
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
 
 DROP POLICY IF EXISTS "Org members can access opportunities" ON public.savings_opportunities;
 CREATE POLICY "Org members can access opportunities" ON public.savings_opportunities
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
 
 DROP POLICY IF EXISTS "Org members can access optimization requests" ON public.optimization_requests;
 CREATE POLICY "Org members can access optimization requests" ON public.optimization_requests
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
 
 DROP POLICY IF EXISTS "Org members can access verified savings" ON public.verified_savings;
 CREATE POLICY "Org members can access verified savings" ON public.verified_savings
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
 
 DROP POLICY IF EXISTS "Org members can view audit events" ON public.audit_events;
 CREATE POLICY "Org members can view audit events" ON public.audit_events
-    FOR ALL USING (public.is_org_member(organization_id));
+    FOR ALL USING (organization_id IN (SELECT public.get_user_org_ids()) OR organization_id IN (SELECT id FROM public.organizations WHERE is_demo = true));
+
+ALTER TABLE public.market_benchmarks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can read market benchmarks" ON public.market_benchmarks;
+CREATE POLICY "Anyone can read market benchmarks" ON public.market_benchmarks
+    FOR SELECT USING (true);
