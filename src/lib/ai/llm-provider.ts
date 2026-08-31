@@ -84,7 +84,7 @@ export class EFacturaProvider implements BaseLLMProvider {
  * 2. Real Google Gemini Extraction Provider (Gemini 2.5 Flash / 1.5 Flash)
  */
 export class GeminiProvider implements BaseLLMProvider {
-  name = 'gemini-2.5-flash';
+  name = 'gemini-3.6-flash';
   private apiKey: string;
 
   constructor(apiKey?: string) {
@@ -137,7 +137,7 @@ Text Snippet: ${request.textContent || 'N/A'}`;
       }
 
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${this.apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
