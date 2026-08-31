@@ -52,15 +52,29 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
     setIsDragging(false);
   };
 
+  const readFileContent = async (file: File): Promise<string | undefined> => {
+    if (file.name.endsWith('.xml') || file.type.includes('xml') || file.type.includes('text')) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(undefined);
+        reader.readAsText(file);
+      });
+    }
+    return undefined;
+  };
+
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
+      const textContent = await readFileContent(file);
       await processFile({
         name: file.name,
-        type: file.type,
+        type: file.type || (file.name.endsWith('.xml') ? 'application/xml' : 'application/pdf'),
         size: file.size,
+        textSnippet: textContent,
         rawFile: file,
       });
     }
@@ -69,18 +83,53 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+      const textContent = await readFileContent(file);
       await processFile({
         name: file.name,
-        type: file.type,
+        type: file.type || (file.name.endsWith('.xml') ? 'application/xml' : 'application/pdf'),
         size: file.size,
+        textSnippet: textContent,
         rawFile: file,
       });
     }
   };
 
   // Quick Demo Pre-sets for immediate testing
-  const uploadPreset = async (presetType: 'vodafone_inv' | 'dpd_ctr' | 'lyreco_unclear') => {
-    if (presetType === 'vodafone_inv') {
+  const uploadPreset = async (presetType: 'vodafone_inv' | 'dpd_ctr' | 'lyreco_unclear' | 'efactura_xml') => {
+    if (presetType === 'efactura_xml') {
+      const sampleXml = `<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:ID>FAC-ANAF-2026-9042</cbc:ID>
+  <cbc:IssueDate>2026-08-30</cbc:IssueDate>
+  <cbc:DueDate>2026-09-30</cbc:DueDate>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>RO 17563040</cbc:CompanyID>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>DPD România (Dynamic Parcel Distribution SA)</cbc:RegistrationName>
+      </cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:LegalMonetaryTotal>
+    <cbc:TaxExclusiveAmount currencyID="RON">6596.64</cbc:TaxExclusiveAmount>
+    <cbc:PayableAmount currencyID="RON">7850.00</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  <cac:InvoiceLine>
+    <cbc:InvoicedQuantity>612</cbc:InvoicedQuantity>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="RON">10.78</cbc:PriceAmount>
+    </cac:Price>
+  </cac:InvoiceLine>
+</Invoice>`;
+
+      await processFile({
+        name: 'e-Factura_DPD_Curierat_August2026.xml',
+        type: 'application/xml',
+        size: 3200,
+        textSnippet: sampleXml,
+      });
+    } else if (presetType === 'vodafone_inv') {
       await processFile({
         name: 'Factura_Vodafone_Noua_Sep2026.pdf',
         type: 'application/pdf',
@@ -122,7 +171,7 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv"
+          accept=".pdf,.jpg,.jpeg,.png,.xml,.xlsx,.csv"
           onChange={handleFileChange}
           className="hidden"
           disabled={isProcessing}
@@ -147,7 +196,7 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
               Trage fișierele aici sau <span className="text-emerald-600 underline">răsfoiește computerul</span>
             </p>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">
-              Formate acceptate: PDF, PNG, JPG. Extragem automat furnizorul, valoarea, categoria, termenele și clauzele de preaviz.
+              Formate acceptate: <strong>XML (e-Factura ANAF)</strong>, PDF, PNG, JPG. Extragem instant datele structurate și clauzele de preaviz.
             </p>
           </>
         )}
@@ -202,7 +251,20 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
           <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
           <span>Sau testează instant cu documente demo:</span>
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <button
+            type="button"
+            disabled={isProcessing}
+            onClick={() => uploadPreset('efactura_xml')}
+            className="p-2.5 text-left rounded-lg bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-300 text-xs font-medium text-emerald-950 transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-bold truncate">e-Factura XML</p>
+              <span className="text-[9px] bg-emerald-200 text-emerald-900 px-1 rounded font-mono font-bold">100%</span>
+            </div>
+            <p className="text-[10px] text-emerald-800 font-mono mt-0.5 truncate">ANAF UBL 2.1 Standard</p>
+          </button>
+
           <button
             type="button"
             disabled={isProcessing}

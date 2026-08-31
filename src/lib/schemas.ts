@@ -35,6 +35,9 @@ export const DocumentExtractionSchema = z.object({
   invoiceNumber: z.string().nullable().optional(),
   invoiceDate: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
+  needsReview: z.boolean().optional(),
+  reviewNotes: z.string().nullable().optional(),
+  rawPayload: z.record(z.string(), z.any()).nullable().optional(),
 });
 
 export type DocumentExtractionInput = z.infer<typeof DocumentExtractionSchema>;

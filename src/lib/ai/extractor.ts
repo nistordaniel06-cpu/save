@@ -1,20 +1,49 @@
 import { DocumentExtractionSchema } from '../schemas';
-import { BaseLLMProvider, MockHeuristicProvider, GeminiProvider, OpenAIProvider, AnthropicProvider, ExtractionRequest, ExtractionResult } from './llm-provider';
+import { 
+  BaseLLMProvider, 
+  MockHeuristicProvider, 
+  GeminiProvider, 
+  OpenAIProvider, 
+  EFacturaProvider,
+  ExtractionRequest, 
+  ExtractionResult 
+} from './llm-provider';
 import { DocumentExtraction } from '../types';
 
-export const CONFIDENCE_THRESHOLD_REVIEW = 85; // Below 85% requires manual review
+export const CONFIDENCE_THRESHOLD_REVIEW = 85; // Sub 85% necesită revizuire manuală
 
-export function getLLMProvider(providerName?: string): BaseLLMProvider {
-  switch (providerName?.toLowerCase()) {
-    case 'gemini':
-      return new GeminiProvider();
-    case 'openai':
-      return new OpenAIProvider();
-    case 'anthropic':
-      return new AnthropicProvider();
-    default:
-      return new MockHeuristicProvider();
+export function getLLMProvider(request?: ExtractionRequest, providerName?: string): BaseLLMProvider {
+  if (providerName) {
+    switch (providerName.toLowerCase()) {
+      case 'efactura':
+        return new EFacturaProvider();
+      case 'gemini':
+        return new GeminiProvider();
+      case 'openai':
+        return new OpenAIProvider();
+      default:
+        return new MockHeuristicProvider();
+    }
   }
+
+  // Automatic smart routing
+  if (
+    request?.fileName?.toLowerCase().endsWith('.xml') ||
+    request?.textContent?.includes('<Invoice') ||
+    request?.textContent?.includes('ubl')
+  ) {
+    return new EFacturaProvider();
+  }
+
+  if (process.env.GEMINI_API_KEY) {
+    return new GeminiProvider();
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    return new OpenAIProvider();
+  }
+
+  return new MockHeuristicProvider();
 }
 
 export async function processDocumentExtraction(
@@ -23,9 +52,12 @@ export async function processDocumentExtraction(
 ): Promise<{
   extraction: Omit<DocumentExtraction, 'id' | 'documentId' | 'organizationId' | 'createdAt'>;
   isValid: boolean;
+  confidence: number;
+  provider: string;
+  fieldConfidences: Record<string, number>;
   validationErrors?: string[];
 }> {
-  const provider = getLLMProvider(providerName);
+  const provider = getLLMProvider(request, providerName);
   const result: ExtractionResult = await provider.extract(request);
 
   // Validate with Zod
@@ -37,7 +69,7 @@ export async function processDocumentExtraction(
       extraction: {
         supplier: result.data.supplier || 'Necunoscut',
         documentType: result.data.documentType || 'invoice',
-        category: result.data.category || 'Altele',
+        category: result.data.category || 'Servicii',
         invoiceTotal: result.data.invoiceTotal || 0,
         currency: result.data.currency || 'RON',
         confidence: 40,
@@ -46,6 +78,9 @@ export async function processDocumentExtraction(
         automaticRenewal: false,
       },
       isValid: false,
+      confidence: 40,
+      provider: provider.name,
+      fieldConfidences: result.fieldConfidences,
       validationErrors: errors,
     };
   }
@@ -54,8 +89,8 @@ export async function processDocumentExtraction(
   const confidence = result.confidence;
   const needsReview = confidence < CONFIDENCE_THRESHOLD_REVIEW;
 
-  let reviewNotes: string | undefined;
-  if (needsReview) {
+  let reviewNotes = validData.reviewNotes;
+  if (needsReview && !reviewNotes) {
     reviewNotes = `Scor de încredere ${confidence}% (sub pragul optim de ${CONFIDENCE_THRESHOLD_REVIEW}%). Te rugăm să verifici câmpurile marcate.`;
   }
 
@@ -70,19 +105,22 @@ export async function processDocumentExtraction(
       invoiceTotal: validData.invoiceTotal,
       currency: validData.currency,
       billingPeriod: validData.billingPeriod ?? undefined,
-      contractStart: validData.contractStart ?? null,
-      contractEnd: validData.contractEnd ?? null,
-      noticePeriodDays: validData.noticePeriodDays ?? null,
-      unitPrice: validData.unitPrice ?? null,
-      quantity: validData.quantity ?? null,
-      automaticRenewal: validData.automaticRenewal,
-      priceIndexation: validData.priceIndexation ?? null,
+      contractStart: validData.contractStart ?? undefined,
+      contractEnd: validData.contractEnd ?? undefined,
+      noticePeriodDays: validData.noticePeriodDays ?? undefined,
+      unitPrice: validData.unitPrice ?? undefined,
+      quantity: validData.quantity ?? undefined,
+      automaticRenewal: validData.automaticRenewal ?? false,
+      priceIndexation: validData.priceIndexation ?? undefined,
       confidence,
       needsReview,
-      reviewNotes,
+      reviewNotes: reviewNotes ?? undefined,
       fieldConfidences: result.fieldConfidences,
-      rawPayload: result.rawOutput,
+      rawPayload: (result.rawOutput || validData.rawPayload) as any,
     },
     isValid: true,
+    confidence,
+    provider: provider.name,
+    fieldConfidences: result.fieldConfidences,
   };
 }

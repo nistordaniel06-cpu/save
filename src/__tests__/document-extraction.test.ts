@@ -44,7 +44,7 @@ describe('Document Extraction AI Pipeline & Zod Validation', () => {
     expect(result.isValid).toBe(true);
     expect(result.extraction.confidence).toBeLessThan(CONFIDENCE_THRESHOLD_REVIEW);
     expect(result.extraction.needsReview).toBe(true);
-    expect(result.extraction.reviewNotes).toContain('sub pragul optim');
+    expect(result.extraction.reviewNotes).toContain('sub 85%');
   });
 
   it('does not flag high-confidence extractions', async () => {
