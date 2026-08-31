@@ -4,26 +4,54 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, ArrowRight, Sparkles, Building2, Lock } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { SaveProvider, useSave } from '@/lib/context';
+import { supabase } from '@/lib/supabase/client';
 
 function LoginContent() {
   const router = useRouter();
-  const [email, setEmail] = useState('andrei.popescu@novaretail.ro');
-  const [password, setPassword] = useState('••••••••••••');
+  const { resetToDemo } = useSave();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isMagicLink, setIsMagicLink] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 600);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      if (isMagicLink) {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+          },
+        });
+        if (error) throw error;
+        setSuccessMsg('Ți-am trimis un link de autentificare pe email. Verifică inbox-ul!');
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Eroare la autentificare. Verifică datele introduse.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDemoLogin = () => {
     setIsLoading(true);
+    resetToDemo();
     setTimeout(() => {
       router.push('/dashboard');
     }, 400);
@@ -42,7 +70,7 @@ function LoginContent() {
           Autentificare în Contul Companiei
         </h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Acces securizat la tabloul de bord și inteligența de achiziții.
+          Acces securizat prin Supabase Auth & Row-Level Security.
         </p>
       </div>
 
@@ -80,9 +108,23 @@ function LoginContent() {
               <div className="w-full border-t border-zinc-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-zinc-400 font-mono text-[10px]">sau autentificare clasică</span>
+              <span className="bg-white px-3 text-zinc-400 font-mono text-[10px]">sau contul tău real Supabase</span>
             </div>
           </div>
+
+          {errorMsg && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>{successMsg}</span>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div className="space-y-1">
@@ -104,7 +146,7 @@ function LoginContent() {
                   <button
                     type="button"
                     onClick={() => setIsMagicLink(true)}
-                    className="text-[11px] text-zinc-500 hover:text-emerald-600"
+                    className="text-[11px] text-zinc-500 hover:text-emerald-600 cursor-pointer"
                   >
                     Folosește Magic Link
                   </button>
@@ -114,6 +156,7 @@ function LoginContent() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Parola ta securizată"
                   className="w-full px-3 py-2 text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
                 />
               </div>
@@ -132,8 +175,8 @@ function LoginContent() {
 
           <div className="pt-2 text-center text-xs text-zinc-500">
             <span>Nu ai încă un cont pentru companie? </span>
-            <Link href="/onboarding" className="font-semibold text-zinc-900 hover:underline">
-              Creează cont în 2 minute
+            <Link href="/auth/register" className="font-semibold text-zinc-900 hover:underline">
+              Creează cont nou
             </Link>
           </div>
         </div>

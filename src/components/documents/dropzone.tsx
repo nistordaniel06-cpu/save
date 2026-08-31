@@ -19,7 +19,13 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
   const [currentStep, setCurrentStep] = useState<string>('');
   const [lastUploadedDoc, setLastUploadedDoc] = useState<any>(null);
 
-  const processFile = async (file: { name: string; type: string; size: number; textSnippet?: string }) => {
+  const processFile = async (file: { 
+    name: string; 
+    type: string; 
+    size: number; 
+    textSnippet?: string; 
+    rawFile?: File | Blob;
+  }) => {
     setIsProcessing(true);
     setLastUploadedDoc(null);
 
@@ -55,6 +61,7 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
         name: file.name,
         type: file.type,
         size: file.size,
+        rawFile: file,
       });
     }
   };
@@ -66,6 +73,7 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
         name: file.name,
         type: file.type,
         size: file.size,
+        rawFile: file,
       });
     }
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { 
   AppState, 
   getInitialState, 
@@ -15,7 +15,7 @@ import {
   SavingsOpportunity, 
   SpendRecord, 
   OptimizationRequest, 
-  OptimizationStatus,
+  OptimizationStatus, 
   VerifiedSavingsItem, 
   AuditEvent,
   DocumentExtraction,
@@ -23,6 +23,8 @@ import {
 } from './types';
 import { processDocumentExtraction } from './ai/extractor';
 import { calculateContractTimeline } from './analytics/contract-calculator';
+import { supabase } from './supabase/client';
+import { DEMO_ORG, DEMO_USER } from './demo-data';
 
 interface SaveContextType {
   state: AppState;
@@ -37,18 +39,20 @@ interface SaveContextType {
   verifiedSavings: VerifiedSavingsItem[];
   auditLogs: AuditEvent[];
   isHydrated: boolean;
+  isDemoMode: boolean;
+  supabaseUser: any | null;
   switchOrganization: (orgId: string) => void;
-  createOrganization: (orgData: Partial<Organization>) => Organization;
-  uploadDocument: (file: { name: string; type: string; size: number; textSnippet?: string }) => Promise<DocumentItem>;
+  createOrganization: (orgData: Partial<Organization>) => Promise<Organization>;
+  uploadDocument: (file: { name: string; type: string; size: number; textSnippet?: string; rawFile?: File | Blob }) => Promise<DocumentItem>;
   updateExtraction: (documentId: string, updatedExtraction: Partial<DocumentExtraction>) => void;
-  deleteDocument: (documentId: string) => void;
+  deleteDocument: (documentId: string) => Promise<void>;
   createOptimizationRequest: (data: {
     opportunityId?: string;
     supplierId?: string;
     supplierName: string;
     initialAnnualCost: number;
     clientNotes?: string;
-  }) => OptimizationRequest;
+  }) => Promise<OptimizationRequest>;
   updateOptimizationStatus: (
     requestId: string, 
     newStatus: OptimizationStatus, 
@@ -57,10 +61,12 @@ interface SaveContextType {
       achievedAnnualSavings?: number;
       counterOfferDetails?: OptimizationRequest['counterOfferDetails'];
     }
-  ) => void;
-  verifyOptimizationSavings: (requestId: string, amountRon: number) => void;
-  addContract: (contract: Omit<ContractItem, 'id' | 'organizationId' | 'createdAt'>) => ContractItem;
+  ) => Promise<void>;
+  verifyOptimizationSavings: (requestId: string, amountRon: number) => Promise<void>;
+  addContract: (contract: Omit<ContractItem, 'id' | 'organizationId' | 'createdAt'>) => Promise<ContractItem>;
   resetToDemo: () => void;
+  signOut: () => Promise<void>;
+  refreshRealData: () => Promise<void>;
 }
 
 const SaveContext = createContext<SaveContextType | null>(null);
@@ -68,12 +74,237 @@ const SaveContext = createContext<SaveContextType | null>(null);
 export function SaveProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(getInitialState);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [supabaseUser, setSupabaseUser] = useState<any | null>(null);
 
+  const fetchOrgDataFromSupabase = async (orgId: string) => {
+    try {
+      // 1. Documents
+      const { data: docs } = await supabase
+        .from('documents')
+        .select('*, document_extractions(*)')
+        .eq('organization_id', orgId);
+
+      // 2. Contracts
+      const { data: ctrs } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('organization_id', orgId);
+
+      // 3. Spend records
+      const { data: spends } = await supabase
+        .from('spend_records')
+        .select('*')
+        .eq('organization_id', orgId);
+
+      // 4. Opportunities
+      const { data: opps } = await supabase
+        .from('savings_opportunities')
+        .select('*')
+        .eq('organization_id', orgId);
+
+      // 5. Optimization requests
+      const { data: reqs } = await supabase
+        .from('optimization_requests')
+        .select('*')
+        .eq('organization_id', orgId);
+
+      setState((prev) => {
+        const mappedDocs: DocumentItem[] = (docs || []).map((d: any) => ({
+          id: d.id,
+          organizationId: d.organization_id,
+          fileName: d.file_name,
+          filePath: d.file_path,
+          fileSizeBytes: Number(d.file_size_bytes),
+          mimeType: d.mime_type,
+          documentType: d.document_type,
+          status: d.status,
+          createdAt: d.created_at,
+          extraction: d.document_extractions ? {
+            id: d.document_extractions.id,
+            documentId: d.id,
+            organizationId: d.organization_id,
+            supplier: d.document_extractions.supplier_name,
+            documentType: d.document_extractions.document_type,
+            category: d.document_extractions.category,
+            invoiceNumber: d.document_extractions.invoice_number,
+            invoiceDate: d.document_extractions.invoice_date,
+            dueDate: d.document_extractions.due_date,
+            invoiceTotal: Number(d.document_extractions.invoice_total),
+            currency: d.document_extractions.currency,
+            confidence: d.document_extractions.confidence,
+            needsReview: d.document_extractions.needs_review,
+            automaticRenewal: d.document_extractions.automatic_renewal,
+            createdAt: d.document_extractions.created_at,
+          } : undefined,
+        }));
+
+        const mappedContracts: ContractItem[] = (ctrs || []).map((c: any) => {
+          const timeline = calculateContractTimeline(c);
+          return {
+            id: c.id,
+            organizationId: c.organization_id,
+            supplierId: c.supplier_id || 'sup_generic',
+            supplierName: c.title,
+            title: c.title,
+            category: c.category,
+            annualValue: Number(c.annual_value),
+            currency: c.currency,
+            startDate: c.start_date,
+            expiryDate: c.expiry_date,
+            noticePeriodDays: c.notice_period_days,
+            noticeDeadline: c.notice_deadline,
+            automaticRenewal: c.automatic_renewal,
+            status: c.status,
+            paymentTerms: c.payment_terms || '30 zile net',
+            daysUntilExpiry: timeline.daysUntilExpiry,
+            daysUntilNotice: timeline.daysUntilNotice,
+            createdAt: c.created_at,
+          };
+        });
+
+        const mappedSpend: SpendRecord[] = (spends || []).map((s: any) => ({
+          id: s.id,
+          organizationId: s.organization_id,
+          supplierId: s.supplier_id || 'sup_generic',
+          supplierName: s.category,
+          category: s.category,
+          description: s.description || '',
+          amount: Number(s.amount),
+          currency: s.currency,
+          spendDate: s.spend_date,
+          isRecurring: s.is_recurring,
+          periodType: s.period_type,
+          createdAt: s.created_at,
+        }));
+
+        const mappedOpps: SavingsOpportunity[] = (opps || []).map((o: any) => ({
+          id: o.id,
+          organizationId: o.organization_id,
+          supplierId: o.supplier_id || 'sup_generic',
+          supplierName: o.title,
+          title: o.title,
+          category: o.category,
+          currentAnnualCost: Number(o.current_annual_cost),
+          estimatedSavingsMin: Number(o.estimated_savings_min),
+          estimatedSavingsMax: Number(o.estimated_savings_max),
+          confidenceLevel: o.confidence_level,
+          provenance: o.provenance,
+          benchmarkReference: o.benchmark_reference,
+          reason: o.reason,
+          recommendedAction: o.recommended_action,
+          status: o.status,
+          createdAt: o.created_at,
+        }));
+
+        const mappedReqs: OptimizationRequest[] = (reqs || []).map((r: any) => ({
+          id: r.id,
+          organizationId: r.organization_id,
+          requestedBy: r.requested_by,
+          requestedByName: 'Utilizator',
+          supplierName: 'Furnizor',
+          status: r.status,
+          initialAnnualCost: Number(r.initial_annual_cost),
+          achievedAnnualSavings: Number(r.achieved_annual_savings || 0),
+          clientNotes: r.client_notes,
+          operatorNotes: r.operator_notes,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+
+        const next = {
+          ...prev,
+          documents: mappedDocs.length > 0 ? mappedDocs : prev.documents.filter(d => d.organizationId !== orgId),
+          contracts: mappedContracts.length > 0 ? mappedContracts : prev.contracts.filter(c => c.organizationId !== orgId),
+          spendRecords: mappedSpend.length > 0 ? mappedSpend : prev.spendRecords.filter(s => s.organizationId !== orgId),
+          opportunities: mappedOpps.length > 0 ? mappedOpps : prev.opportunities.filter(o => o.organizationId !== orgId),
+          optimizationRequests: mappedReqs.length > 0 ? mappedReqs : prev.optimizationRequests.filter(r => r.organizationId !== orgId),
+        };
+        saveState(next);
+        return next;
+      });
+    } catch (e) {
+      console.warn('Error fetching org data from Supabase:', e);
+    }
+  };
+
+  const loadUserOrganizations = async (userId: string) => {
+    try {
+      const { data: members, error: memErr } = await supabase
+        .from('organization_members')
+        .select('organization_id, role, organizations(*)')
+        .eq('user_id', userId);
+
+      if (!memErr && members && members.length > 0) {
+        const realOrgs: Organization[] = members.map((m: any) => ({
+          id: m.organizations.id,
+          name: m.organizations.name,
+          cui: m.organizations.cui,
+          registrationNumber: m.organizations.registration_number,
+          industry: m.organizations.industry || 'Servicii & B2B',
+          employeeRange: m.organizations.employee_range || '10-49',
+          monthlyOpexRon: Number(m.organizations.monthly_opex_ron) || 0,
+          saveScore: m.organizations.save_score || 70,
+          isDemo: false,
+          currency: m.organizations.currency || 'RON',
+          createdAt: m.organizations.created_at,
+        }));
+
+        setState((prev) => {
+          const allOrgs = [DEMO_ORG, ...realOrgs];
+          // If current was demo or first login, switch to user's real org
+          const nextCurrent = realOrgs[0] || prev.currentOrg;
+          const next = {
+            ...prev,
+            organizations: allOrgs,
+            currentOrg: nextCurrent,
+            currentUser: {
+              id: userId,
+              email: supabaseUser?.email || prev.currentUser.email,
+              fullName: supabaseUser?.user_metadata?.full_name || prev.currentUser.fullName,
+              role: 'Director Financiar (Owner)',
+              createdAt: new Date().toISOString(),
+            },
+          };
+          saveState(next);
+          return next;
+        });
+
+        // Load real data for current org
+        if (realOrgs[0]) {
+          await fetchOrgDataFromSupabase(realOrgs[0].id);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load user organizations from Supabase, using local state:', e);
+    }
+  };
+
+  // Sync Supabase Auth session on mount and listen to changes
   useEffect(() => {
-    const initial = getInitialState();
-    setState(initial);
     setIsHydrated(true);
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setSupabaseUser(user);
+        loadUserOrganizations(user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setSupabaseUser(session.user);
+        await loadUserOrganizations(session.user.id);
+      } else {
+        setSupabaseUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+
 
   const updateState = (updater: (prev: AppState) => AppState) => {
     setState((prev) => {
@@ -90,22 +321,59 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         currentOrg: target,
       }));
+      if (!target.isDemo) {
+        fetchOrgDataFromSupabase(target.id);
+      }
     }
   };
 
-  const createOrganization = (orgData: Partial<Organization>): Organization => {
+  const createOrganization = async (orgData: Partial<Organization>): Promise<Organization> => {
+    const orgId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `org_${Date.now()}`;
     const newOrg: Organization = {
-      id: `org_${Date.now()}`,
+      id: orgId,
       name: orgData.name || 'Companie Nouă SRL',
       cui: orgData.cui || 'RO 00000000',
       industry: orgData.industry || 'Servicii & Tehnologie',
       employeeRange: orgData.employeeRange || '10-49',
       monthlyOpexRon: orgData.monthlyOpexRon || 25000,
-      saveScore: 65,
+      saveScore: 70,
       isDemo: false,
       currency: 'RON',
       createdAt: new Date().toISOString(),
     };
+
+    // Try to persist to Supabase if authenticated
+    try {
+      const user = supabaseUser || (await supabase.auth.getUser()).data.user;
+      if (user) {
+        const { data: dbOrg, error: orgErr } = await supabase
+          .from('organizations')
+          .insert({
+            id: orgId,
+            name: newOrg.name,
+            cui: newOrg.cui,
+            industry: newOrg.industry,
+            employee_range: newOrg.employeeRange,
+            monthly_opex_ron: newOrg.monthlyOpexRon,
+            save_score: newOrg.saveScore,
+            is_demo: false,
+            currency: 'RON',
+          })
+          .select()
+          .single();
+
+        if (!orgErr) {
+          // Link member
+          await supabase.from('organization_members').insert({
+            organization_id: orgId,
+            user_id: user.id,
+            role: 'owner',
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase organization insert fallback to local:', e);
+    }
 
     updateState((prev) => ({
       ...prev,
@@ -116,29 +384,70 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
     return newOrg;
   };
 
-  const uploadDocument = async (file: { name: string; type: string; size: number; textSnippet?: string }): Promise<DocumentItem> => {
-    const docId = `doc_${Date.now()}`;
+  const uploadDocument = async (file: { 
+    name: string; 
+    type: string; 
+    size: number; 
+    textSnippet?: string; 
+    rawFile?: File | Blob 
+  }): Promise<DocumentItem> => {
+    const docId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `doc_${Date.now()}`;
+    const isRealOrg = !state.currentOrg.isDemo;
+    const storagePath = `${state.currentOrg.id}/${docId}/${file.name}`;
+
     const newDoc: DocumentItem = {
       id: docId,
       organizationId: state.currentOrg.id,
       fileName: file.name,
-      filePath: `${state.currentOrg.id}/uploads/${file.name}`,
+      filePath: storagePath,
       fileSizeBytes: file.size,
       mimeType: file.type || 'application/pdf',
       documentType: file.name.toLowerCase().includes('contract') ? 'supplier_contract' : 'invoice',
-      status: 'processing',
+      status: 'uploaded',
       uploadedByName: state.currentUser.fullName,
       createdAt: new Date().toISOString(),
     };
 
-    // Insert with processing status
+    // 1. Upload to Supabase Private Storage if in Real Organization
+    if (isRealOrg && file.rawFile) {
+      try {
+        const { error: uploadErr } = await supabase.storage
+          .from('documents')
+          .upload(storagePath, file.rawFile, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadErr) {
+          console.warn('Supabase private storage upload notice:', uploadErr.message);
+        }
+
+        // Insert database row in Supabase
+        const user = supabaseUser || (await supabase.auth.getUser()).data.user;
+        await supabase.from('documents').insert({
+          id: docId,
+          organization_id: state.currentOrg.id,
+          file_name: file.name,
+          file_path: storagePath,
+          file_size_bytes: file.size,
+          mime_type: file.type || 'application/pdf',
+          document_type: newDoc.documentType,
+          status: 'uploaded',
+          uploaded_by: user?.id || null,
+        });
+      } catch (e) {
+        console.warn('Supabase document persistence fallback:', e);
+      }
+    }
+
+    // 2. Insert with uploaded / extracting status
     updateState((prev) => ({
       ...prev,
       documents: [newDoc, ...prev.documents],
     }));
 
-    // Trigger AI extraction pipeline
-    const { extraction, isValid } = await processDocumentExtraction({
+    // 3. Process AI Extraction pipeline
+    const { extraction } = await processDocumentExtraction({
       fileName: file.name,
       mimeType: file.type,
       fileSizeBytes: file.size,
@@ -175,7 +484,32 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
 
     const finalStatus = extraction.needsReview ? 'requires_review' : 'extracted';
 
-    // Update document and record audit event
+    // 4. Update in Supabase if real org
+    if (isRealOrg) {
+      try {
+        await supabase.from('documents').update({
+          status: finalStatus,
+        }).eq('id', docId);
+
+        await supabase.from('document_extractions').insert({
+          document_id: docId,
+          organization_id: state.currentOrg.id,
+          supplier_name: extraction.supplier,
+          document_type: extraction.documentType,
+          category: extraction.category,
+          invoice_number: extraction.invoiceNumber,
+          invoice_date: extraction.invoiceDate,
+          invoice_total: extraction.invoiceTotal,
+          currency: extraction.currency,
+          confidence: extraction.confidence,
+          needs_review: extraction.needsReview,
+        });
+      } catch (e) {
+        console.warn('Supabase extraction update fallback:', e);
+      }
+    }
+
+    // Update state and record audit log
     updateState((prev) => {
       const updatedDocs = prev.documents.map((d) =>
         d.id === docId ? { ...d, status: finalStatus as any, supplierName: extraction.supplier, extraction: fullExtraction } : d
@@ -193,7 +527,6 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date().toISOString(),
       };
 
-      // Also create a spend record if it's a valid invoice
       let updatedSpend = prev.spendRecords;
       if (extraction.documentType === 'invoice' || extraction.documentType === 'subscription_agreement') {
         const newSpendRecord: SpendRecord = {
@@ -251,55 +584,41 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         return d;
       });
 
-      const audit: AuditEvent = {
-        id: `aud_${Date.now()}`,
-        organizationId: prev.currentOrg.id,
-        actorId: prev.currentUser.id,
-        actorName: prev.currentUser.fullName,
-        action: 'document.manual_review_completed',
-        entityType: 'document',
-        entityId: documentId,
-        createdAt: new Date().toISOString(),
-      };
-
       return {
         ...prev,
         documents: updatedDocs,
-        auditLogs: [audit, ...prev.auditLogs],
       };
     });
   };
 
-  const deleteDocument = (documentId: string) => {
+  const deleteDocument = async (documentId: string) => {
+    const docToDelete = state.documents.find((d) => d.id === documentId);
+    if (!state.currentOrg.isDemo && docToDelete) {
+      try {
+        await supabase.storage.from('documents').remove([docToDelete.filePath]);
+        await supabase.from('documents').delete().eq('id', documentId);
+      } catch (e) {
+        console.warn('Supabase document delete notice:', e);
+      }
+    }
+
     updateState((prev) => ({
       ...prev,
       documents: prev.documents.filter((d) => d.id !== documentId),
-      auditLogs: [
-        {
-          id: `aud_${Date.now()}`,
-          organizationId: prev.currentOrg.id,
-          actorId: prev.currentUser.id,
-          actorName: prev.currentUser.fullName,
-          action: 'document.deleted',
-          entityType: 'document',
-          entityId: documentId,
-          createdAt: new Date().toISOString(),
-        },
-        ...prev.auditLogs,
-      ],
     }));
   };
 
-  const createOptimizationRequest = (data: {
+  const createOptimizationRequest = async (data: {
     opportunityId?: string;
     supplierId?: string;
     supplierName: string;
     initialAnnualCost: number;
     clientNotes?: string;
-  }): OptimizationRequest => {
+  }): Promise<OptimizationRequest> => {
     const opp = state.opportunities.find((o) => o.id === data.opportunityId);
+    const newReqId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `opt_req_${Date.now()}`;
     const newReq: OptimizationRequest = {
-      id: `opt_req_${Date.now()}`,
+      id: newReqId,
       organizationId: state.currentOrg.id,
       organizationName: state.currentOrg.name,
       opportunityId: data.opportunityId,
@@ -317,36 +636,38 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
 
+    if (!state.currentOrg.isDemo) {
+      try {
+        await supabase.from('optimization_requests').insert({
+          id: newReqId,
+          organization_id: state.currentOrg.id,
+          opportunity_id: data.opportunityId || null,
+          supplier_id: data.supplierId || null,
+          requested_by: supabaseUser?.id || null,
+          initial_annual_cost: data.initialAnnualCost,
+          status: 'new',
+          client_notes: data.clientNotes,
+        });
+      } catch (e) {
+        console.warn('Supabase request insert notice:', e);
+      }
+    }
+
     updateState((prev) => {
-      // Mark opportunity as requested
       const updatedOpps = prev.opportunities.map((o) =>
         o.id === data.opportunityId ? { ...o, status: 'requested' as const } : o
       );
-
-      const audit: AuditEvent = {
-        id: `aud_${Date.now()}`,
-        organizationId: prev.currentOrg.id,
-        actorId: prev.currentUser.id,
-        actorName: prev.currentUser.fullName,
-        action: 'optimization.requested',
-        entityType: 'optimization_request',
-        entityId: newReq.id,
-        metadata: { supplier: data.supplierName, initialCost: data.initialAnnualCost },
-        createdAt: new Date().toISOString(),
-      };
-
       return {
         ...prev,
         opportunities: updatedOpps,
         optimizationRequests: [newReq, ...prev.optimizationRequests],
-        auditLogs: [audit, ...prev.auditLogs],
       };
     });
 
     return newReq;
   };
 
-  const updateOptimizationStatus = (
+  const updateOptimizationStatus = async (
     requestId: string,
     newStatus: OptimizationStatus,
     options?: {
@@ -355,6 +676,18 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
       counterOfferDetails?: OptimizationRequest['counterOfferDetails'];
     }
   ) => {
+    if (!state.currentOrg.isDemo) {
+      try {
+        await supabase.from('optimization_requests').update({
+          status: newStatus,
+          achieved_annual_savings: options?.achievedAnnualSavings || 0,
+          operator_notes: options?.operatorNotes,
+        }).eq('id', requestId);
+      } catch (e) {
+        console.warn('Supabase status update notice:', e);
+      }
+    }
+
     updateState((prev) => {
       const updatedReqs = prev.optimizationRequests.map((req) => {
         if (req.id === requestId) {
@@ -377,7 +710,7 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const verifyOptimizationSavings = (requestId: string, amountRon: number) => {
+  const verifyOptimizationSavings = async (requestId: string, amountRon: number) => {
     const req = state.optimizationRequests.find((r) => r.id === requestId);
     if (!req) return;
 
@@ -387,7 +720,7 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
       optimizationRequestId: requestId,
       supplierId: req.supplierId,
       supplierName: req.supplierName || 'Furnizor Optimizat',
-      category: 'Telecom', // Default or derived
+      category: 'Telecom',
       verifiedAmountAnnual: amountRon,
       currency: 'RON',
       verificationMethod: 'contract_renegotiated_signed',
@@ -416,11 +749,12 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const addContract = (contractData: Omit<ContractItem, 'id' | 'organizationId' | 'createdAt'>): ContractItem => {
+  const addContract = async (contractData: Omit<ContractItem, 'id' | 'organizationId' | 'createdAt'>): Promise<ContractItem> => {
     const timeline = calculateContractTimeline(contractData);
+    const contractId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `ctr_${Date.now()}`;
     const newContract: ContractItem = {
       ...contractData,
-      id: `ctr_${Date.now()}`,
+      id: contractId,
       organizationId: state.currentOrg.id,
       daysUntilExpiry: timeline.daysUntilExpiry,
       noticeDeadline: timeline.noticeDeadline,
@@ -428,23 +762,31 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     };
 
+    if (!state.currentOrg.isDemo) {
+      try {
+        await supabase.from('contracts').insert({
+          id: contractId,
+          organization_id: state.currentOrg.id,
+          title: newContract.title,
+          category: newContract.category,
+          annual_value: newContract.annualValue,
+          currency: newContract.currency,
+          start_date: newContract.startDate,
+          expiry_date: newContract.expiryDate,
+          notice_period_days: newContract.noticePeriodDays,
+          notice_deadline: newContract.noticeDeadline,
+          automatic_renewal: newContract.automaticRenewal,
+          status: newContract.status,
+          payment_terms: newContract.paymentTerms,
+        });
+      } catch (e) {
+        console.warn('Supabase contract insert notice:', e);
+      }
+    }
+
     updateState((prev) => ({
       ...prev,
       contracts: [newContract, ...prev.contracts],
-      auditLogs: [
-        {
-          id: `aud_${Date.now()}`,
-          organizationId: prev.currentOrg.id,
-          actorId: prev.currentUser.id,
-          actorName: prev.currentUser.fullName,
-          action: 'contract.created',
-          entityType: 'contract',
-          entityId: newContract.id,
-          metadata: { title: newContract.title, annualValue: newContract.annualValue },
-          createdAt: new Date().toISOString(),
-        },
-        ...prev.auditLogs,
-      ],
     }));
 
     return newContract;
@@ -454,6 +796,20 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
     const fresh = resetDemoState();
     setState(fresh);
   };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setSupabaseUser(null);
+    resetToDemo();
+  };
+
+  const refreshRealData = async () => {
+    if (!state.currentOrg.isDemo) {
+      await fetchOrgDataFromSupabase(state.currentOrg.id);
+    }
+  };
+
+  const isDemoMode = state.currentOrg.isDemo;
 
   const orgFilteredDocuments = state.documents.filter((d) => d.organizationId === state.currentOrg.id);
   const orgFilteredContracts = state.contracts.filter((c) => c.organizationId === state.currentOrg.id);
@@ -477,6 +833,8 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         verifiedSavings: orgFilteredVerifiedSavings,
         auditLogs: state.auditLogs,
         isHydrated,
+        isDemoMode,
+        supabaseUser,
         switchOrganization,
         createOrganization,
         uploadDocument,
@@ -487,6 +845,8 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         verifyOptimizationSavings,
         addContract,
         resetToDemo,
+        signOut,
+        refreshRealData,
       }}
     >
       {children}

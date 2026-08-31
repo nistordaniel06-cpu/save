@@ -33,8 +33,8 @@ export class MockHeuristicProvider implements BaseLLMProvider {
     let documentType: DocumentType = 'invoice';
     let category: SpendCategory = 'Servicii';
     let invoiceTotal = 1250.00;
-    let currency = 'RON';
-    let billingPeriod = 'Luna curentă';
+    const currency = 'RON';
+    const billingPeriod = 'Luna curentă';
     let contractStart: string | null = null;
     let contractEnd: string | null = null;
     let noticePeriodDays: number | null = null;

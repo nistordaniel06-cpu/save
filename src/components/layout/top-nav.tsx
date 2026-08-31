@@ -9,7 +9,8 @@ import {
   RotateCcw,
   Sparkles,
   FileCheck,
-  CheckCircle2
+  CheckCircle2,
+  LogOut
 } from 'lucide-react';
 import { useSave } from '@/lib/context';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import { Modal } from '@/components/ui/modal';
 import { Dropzone } from '@/components/documents/dropzone';
 
 export function TopNav() {
-  const { currentOrg, currentUser, resetToDemo } = useSave();
+  const { currentOrg, currentUser, resetToDemo, supabaseUser, signOut } = useSave();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [showDemoToast, setShowDemoToast] = useState(false);
 
@@ -78,7 +79,7 @@ export function TopNav() {
             <span>Încarcă Document</span>
           </Button>
 
-          {/* User Profile Pill */}
+          {/* User Profile Pill & Logout */}
           <div className="flex items-center gap-2 pl-2 border-l border-zinc-200">
             <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-xs border border-zinc-800">
               {currentUser.fullName.split(' ').map(n => n[0]).join('')}
@@ -87,6 +88,15 @@ export function TopNav() {
               <p className="text-xs font-semibold text-zinc-900 leading-tight">{currentUser.fullName}</p>
               <p className="text-[10px] text-zinc-500 font-mono leading-none">{currentUser.role || 'CFO'}</p>
             </div>
+            {supabaseUser && (
+              <button
+                onClick={() => signOut()}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors ml-1 cursor-pointer"
+                title="Deconectare cont Supabase"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </header>

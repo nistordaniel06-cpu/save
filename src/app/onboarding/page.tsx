@@ -38,17 +38,22 @@ function OnboardingContent() {
     e.preventDefault();
     setIsLoading(true);
 
-    await new Promise((r) => setTimeout(r, 600));
+    try {
+      const newOrg = await createOrganization({
+        name: companyName || 'Companie Client SRL',
+        cui: cui || 'RO 00000000',
+        industry,
+        employeeRange,
+        monthlyOpexRon: Number(monthlyOpexRon),
+      });
 
-    const newOrg = createOrganization({
-      name: companyName || 'Companie Client SRL',
-      cui: cui || 'RO 12345678',
-      industry,
-      employeeRange,
-      monthlyOpexRon: Number(monthlyOpexRon),
-    });
-
-    router.push('/dashboard');
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Failed to create organization:', err);
+      router.push('/dashboard');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const categories: SpendCategory[] = [

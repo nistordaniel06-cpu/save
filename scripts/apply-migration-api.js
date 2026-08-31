@@ -9,11 +9,9 @@ if (!token) {
   process.exit(1);
 }
 
-async function executeSql() {
-  const sqlPath = path.resolve(__dirname, '../supabase/migrations/20260831000000_initial_schema.sql');
-  const sql = fs.readFileSync(sqlPath, 'utf8');
-
-  console.log(`Executing SQL migration on Supabase project ${projectRef}...`);
+async function executeSqlFile(filePath) {
+  const sql = fs.readFileSync(filePath, 'utf8');
+  console.log(`Executing ${path.basename(filePath)} on Supabase project ${projectRef}...`);
 
   const response = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
     method: 'POST',
@@ -25,17 +23,27 @@ async function executeSql() {
   });
 
   const responseText = await response.text();
-  console.log(`Response status: ${response.status}`);
+  console.log(`Status for ${path.basename(filePath)}: ${response.status}`);
 
   if (!response.ok) {
     console.error('API Error Response:', responseText);
-    process.exit(1);
+    throw new Error(`Failed to execute ${filePath}`);
   }
 
-  console.log('✓ SQL Migration executed successfully via Supabase Management API!');
+  console.log(`✓ ${path.basename(filePath)} executed successfully!`);
 }
 
-executeSql().catch((err) => {
-  console.error('Failed to execute migration:', err);
+async function runAll() {
+  const migrationsDir = path.resolve(__dirname, '../supabase/migrations');
+  const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+
+  for (const file of files) {
+    await executeSqlFile(path.join(migrationsDir, file));
+  }
+  console.log('\n✓ All migrations executed successfully!');
+}
+
+runAll().catch(err => {
+  console.error(err);
   process.exit(1);
 });

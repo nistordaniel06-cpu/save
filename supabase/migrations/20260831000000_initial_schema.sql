@@ -6,27 +6,24 @@
 -- Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ----------------------------------------------------------------------------
--- 1. Profiles (User Profiles linked to Supabase Auth)
--- ----------------------------------------------------------------------------
+-- 1. Profiles
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY,
     email TEXT NOT NULL,
     full_name TEXT NOT NULL,
     phone TEXT,
     avatar_url TEXT,
+    role TEXT DEFAULT 'Director Financiar (CFO)',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 2. Organizations (Tenant Partitioning)
--- ----------------------------------------------------------------------------
+-- 2. Organizations
 CREATE TABLE IF NOT EXISTS public.organizations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
-    cui TEXT, -- Cod Unic de Înregistrare (VAT ID)
-    registration_number TEXT, -- J40/...
+    cui TEXT,
+    registration_number TEXT,
     industry TEXT NOT NULL DEFAULT 'Retail & E-commerce',
     employee_range TEXT NOT NULL DEFAULT '10-49',
     monthly_opex_ron NUMERIC(15, 2) DEFAULT 0,
@@ -37,9 +34,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 3. Organization Members (RBAC: owner, admin, member, viewer)
--- ----------------------------------------------------------------------------
+-- 3. Organization Members
 CREATE TABLE IF NOT EXISTS public.organization_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -49,15 +44,13 @@ CREATE TABLE IF NOT EXISTS public.organization_members (
     UNIQUE(organization_id, user_id)
 );
 
--- ----------------------------------------------------------------------------
--- 4. Suppliers (Vendor Master Directory per Org)
--- ----------------------------------------------------------------------------
+-- 4. Suppliers
 CREATE TABLE IF NOT EXISTS public.suppliers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     cui TEXT,
-    category TEXT NOT NULL, -- Telecom, Software, Curierat, Consumabile, Energie, Servicii
+    category TEXT NOT NULL,
     contact_email TEXT,
     rating NUMERIC(3, 2) DEFAULT 4.5,
     is_preferred BOOLEAN DEFAULT FALSE,
@@ -65,15 +58,13 @@ CREATE TABLE IF NOT EXISTS public.suppliers (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 5. Documents (Raw Uploads)
--- ----------------------------------------------------------------------------
+-- 5. Documents
 CREATE TABLE IF NOT EXISTS public.documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
     supplier_id UUID REFERENCES public.suppliers(id) ON DELETE SET NULL,
     file_name TEXT NOT NULL,
-    file_path TEXT NOT NULL, -- Supabase storage path
+    file_path TEXT NOT NULL,
     file_size_bytes BIGINT NOT NULL,
     mime_type TEXT NOT NULL,
     document_type TEXT NOT NULL CHECK (document_type IN ('invoice', 'supplier_contract', 'subscription_agreement', 'quote')),
@@ -83,9 +74,7 @@ CREATE TABLE IF NOT EXISTS public.documents (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 6. Document Extractions (Structured AI Output with Confidence Scoring)
--- ----------------------------------------------------------------------------
+-- 6. Document Extractions
 CREATE TABLE IF NOT EXISTS public.document_extractions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_id UUID NOT NULL UNIQUE REFERENCES public.documents(id) ON DELETE CASCADE,
@@ -116,9 +105,7 @@ CREATE TABLE IF NOT EXISTS public.document_extractions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 7. Spend Records (Granular Spend Aggregations)
--- ----------------------------------------------------------------------------
+-- 7. Spend Records
 CREATE TABLE IF NOT EXISTS public.spend_records (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -134,9 +121,7 @@ CREATE TABLE IF NOT EXISTS public.spend_records (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 8. Contracts (Contract Lifecycle & Renewal Radar)
--- ----------------------------------------------------------------------------
+-- 8. Contracts
 CREATE TABLE IF NOT EXISTS public.contracts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -158,9 +143,7 @@ CREATE TABLE IF NOT EXISTS public.contracts (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 9. Savings Opportunities (Intelligence Recommendations with Provenance)
--- ----------------------------------------------------------------------------
+-- 9. Savings Opportunities
 CREATE TABLE IF NOT EXISTS public.savings_opportunities (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -181,9 +164,7 @@ CREATE TABLE IF NOT EXISTS public.savings_opportunities (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 10. Optimization Requests ("Redu Costul" Workflow)
--- ----------------------------------------------------------------------------
+-- 10. Optimization Requests
 CREATE TABLE IF NOT EXISTS public.optimization_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -201,9 +182,7 @@ CREATE TABLE IF NOT EXISTS public.optimization_requests (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 11. Verified Savings (Audit-grade savings proof)
--- ----------------------------------------------------------------------------
+-- 11. Verified Savings
 CREATE TABLE IF NOT EXISTS public.verified_savings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -216,14 +195,12 @@ CREATE TABLE IF NOT EXISTS public.verified_savings (
     verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 12. Market Benchmarks (Price Intelligence Extension Point)
--- ----------------------------------------------------------------------------
+-- 12. Market Benchmarks
 CREATE TABLE IF NOT EXISTS public.market_benchmarks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     category TEXT NOT NULL,
     service_tier TEXT NOT NULL,
-    unit_metric TEXT NOT NULL, -- e.g. 'per_sim_month', 'per_user_month', 'per_awb_standard', 'per_mwh'
+    unit_metric TEXT NOT NULL,
     p25_price NUMERIC(15, 2) NOT NULL,
     p50_median_price NUMERIC(15, 2) NOT NULL,
     p75_price NUMERIC(15, 2) NOT NULL,
@@ -233,9 +210,7 @@ CREATE TABLE IF NOT EXISTS public.market_benchmarks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ----------------------------------------------------------------------------
--- 13. Audit Events (Security & Action Traceability)
--- ----------------------------------------------------------------------------
+-- 13. Audit Events
 CREATE TABLE IF NOT EXISTS public.audit_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
@@ -247,19 +222,6 @@ CREATE TABLE IF NOT EXISTS public.audit_events (
     ip_address TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- ----------------------------------------------------------------------------
--- INDEXES
--- ----------------------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_org_members_user ON public.organization_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_org_members_org ON public.organization_members(organization_id);
-CREATE INDEX IF NOT EXISTS idx_documents_org ON public.documents(organization_id);
-CREATE INDEX IF NOT EXISTS idx_extractions_doc ON public.document_extractions(document_id);
-CREATE INDEX IF NOT EXISTS idx_spend_org_date ON public.spend_records(organization_id, spend_date);
-CREATE INDEX IF NOT EXISTS idx_contracts_org_expiry ON public.contracts(organization_id, expiry_date);
-CREATE INDEX IF NOT EXISTS idx_contracts_notice ON public.contracts(organization_id, notice_deadline);
-CREATE INDEX IF NOT EXISTS idx_opportunities_org ON public.savings_opportunities(organization_id, status);
-CREATE INDEX IF NOT EXISTS idx_audit_org ON public.audit_events(organization_id, created_at);
 
 -- ----------------------------------------------------------------------------
 -- ROW LEVEL SECURITY (RLS) POLICIES
@@ -276,7 +238,6 @@ ALTER TABLE public.optimization_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.verified_savings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
 
--- Helper security function: Check membership
 CREATE OR REPLACE FUNCTION public.is_org_member(target_org_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -288,36 +249,47 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Policies
+-- Drop and Recreate Policies safely
+DROP POLICY IF EXISTS "Users can access their organizations" ON public.organizations;
 CREATE POLICY "Users can access their organizations" ON public.organizations
     FOR ALL USING (id IN (SELECT organization_id FROM public.organization_members WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can view members of their organizations" ON public.organization_members;
 CREATE POLICY "Users can view members of their organizations" ON public.organization_members
     FOR ALL USING (organization_id IN (SELECT organization_id FROM public.organization_members WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Org members can access suppliers" ON public.suppliers;
 CREATE POLICY "Org members can access suppliers" ON public.suppliers
     FOR ALL USING (public.is_org_member(organization_id));
 
+DROP POLICY IF EXISTS "Org members can access documents" ON public.documents;
 CREATE POLICY "Org members can access documents" ON public.documents
     FOR ALL USING (public.is_org_member(organization_id));
 
+DROP POLICY IF EXISTS "Org members can access extractions" ON public.document_extractions;
 CREATE POLICY "Org members can access extractions" ON public.document_extractions
     FOR ALL USING (public.is_org_member(organization_id));
 
+DROP POLICY IF EXISTS "Org members can access spend records" ON public.spend_records;
 CREATE POLICY "Org members can access spend records" ON public.spend_records
     FOR ALL USING (public.is_org_member(organization_id));
 
+DROP POLICY IF EXISTS "Org members can access contracts" ON public.contracts;
 CREATE POLICY "Org members can access contracts" ON public.contracts
     FOR ALL USING (public.is_org_member(organization_id));
 
+DROP POLICY IF EXISTS "Org members can access opportunities" ON public.savings_opportunities;
 CREATE POLICY "Org members can access opportunities" ON public.savings_opportunities
     FOR ALL USING (public.is_org_member(organization_id));
 
+DROP POLICY IF EXISTS "Org members can access optimization requests" ON public.optimization_requests;
 CREATE POLICY "Org members can access optimization requests" ON public.optimization_requests
     FOR ALL USING (public.is_org_member(organization_id));
 
+DROP POLICY IF EXISTS "Org members can access verified savings" ON public.verified_savings;
 CREATE POLICY "Org members can access verified savings" ON public.verified_savings
     FOR ALL USING (public.is_org_member(organization_id));
 
+DROP POLICY IF EXISTS "Org members can view audit events" ON public.audit_events;
 CREATE POLICY "Org members can view audit events" ON public.audit_events
     FOR ALL USING (public.is_org_member(organization_id));

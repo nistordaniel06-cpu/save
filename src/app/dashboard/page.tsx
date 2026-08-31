@@ -34,8 +34,53 @@ export default function DashboardPage() {
   const contractRadar = calculateContractRadar(contracts);
   const scoreData = calculateSaveScore(spendSummary.totalAnnualSpendRon, contracts, opportunities);
 
+  const isDemo = currentOrg.isDemo;
+  const hasRealData = documents.length > 0 || contracts.length > 0;
+
   return (
     <div className="space-y-8">
+      {/* Explicit Mode Banner */}
+      {isDemo ? (
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-900">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>
+              <strong>Mod Demonstrativ Activ (Nova Retail SRL):</strong> Date simulate de achiziții pentru prezentare.
+            </span>
+          </div>
+          <Link href="/onboarding" className="font-semibold underline text-amber-950 hover:text-amber-800">
+            Adaugă Organizația Ta Reală →
+          </Link>
+        </div>
+      ) : !hasRealData ? (
+        <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-emerald-950">
+              Bine ai venit în {currentOrg.name}! Organizația ta este securizată cu Supabase RLS.
+            </p>
+            <p className="text-emerald-800 text-[11px]">
+              Nu există încă documente sau facturi încărcate. Datele tale financiare vor apărea aici imediat după prima încărcare.
+            </p>
+          </div>
+          <Link href="/dashboard/documents" className="shrink-0">
+            <Button size="sm" variant="emerald" className="gap-1.5 font-bold shadow-xs">
+              <Upload className="w-3.5 h-3.5" />
+              <span>Încarcă Primele Documente</span>
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200/80 flex items-center justify-between text-xs text-emerald-900">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>
+              <strong>Organizație Reală Activă:</strong> Date confidențiale izolate prin Row-Level Security.
+            </span>
+          </div>
+          <Badge variant="success" size="sm">Supabase Sync Activ</Badge>
+        </div>
+      )}
+
       {/* Executive Welcome Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-zinc-200/80">
         <div>
