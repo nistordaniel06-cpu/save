@@ -388,7 +388,7 @@ export default function LandingPage() {
           Preia controlul asupra achizițiilor companiei tale.
         </h2>
         <p className="text-sm text-zinc-600 max-w-xl mx-auto">
-          Creează contul organizației tale pentru a analiza facturile reale sau explorează platforma prin demo-ul Nova Retail SRL.
+          Creează contul organizației tale pentru a analiza facturile reale sau explorează platforma demonstrativă.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
           <Link href="/auth/register" className="w-full sm:w-auto">
@@ -399,7 +399,7 @@ export default function LandingPage() {
           </Link>
           <Link href="/demo" className="w-full sm:w-auto">
             <Button size="lg" variant="outline" className="w-full sm:w-auto px-8 h-12">
-              Vezi Demo Nova Retail
+              Vezi demo
             </Button>
           </Link>
         </div>

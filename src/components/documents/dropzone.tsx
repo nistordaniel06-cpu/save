@@ -12,7 +12,7 @@ interface DropzoneProps {
 }
 
 export function Dropzone({ onUploadComplete }: DropzoneProps) {
-  const { uploadDocument } = useSave();
+  const { uploadDocument, isDemoMode } = useSave();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -245,57 +245,103 @@ export function Dropzone({ onUploadComplete }: DropzoneProps) {
         </div>
       )}
 
-      {/* Demo Test Presets */}
+      {/* Real Formats & Upload Actions */}
       <div className="pt-2">
         <p className="text-xs font-medium text-zinc-500 mb-2 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Sau testează instant cu documente demo:</span>
+          <FileText className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Canale de Încărcare & Formate Suportate:</span>
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-          <button
-            type="button"
-            disabled={isProcessing}
-            onClick={() => uploadPreset('efactura_xml')}
-            className="p-2.5 text-left rounded-lg bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-300 text-xs font-medium text-emerald-950 transition-colors disabled:opacity-50 cursor-pointer"
+          <div
+            onClick={() => !isProcessing && fileInputRef.current?.click()}
+            className="p-2.5 text-left rounded-lg bg-zinc-50 hover:bg-zinc-100/80 border border-zinc-200 text-xs font-medium text-zinc-900 transition-colors cursor-pointer"
           >
             <div className="flex items-center justify-between">
               <p className="font-bold truncate">e-Factura XML</p>
-              <span className="text-[9px] bg-emerald-200 text-emerald-900 px-1 rounded font-mono font-bold">100%</span>
+              <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1 rounded font-mono font-bold">Standard</span>
             </div>
-            <p className="text-[10px] text-emerald-800 font-mono mt-0.5 truncate">ANAF UBL 2.1 Standard</p>
-          </button>
+            <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">ANAF UBL 2.1 Direct</p>
+          </div>
 
-          <button
-            type="button"
-            disabled={isProcessing}
-            onClick={() => uploadPreset('vodafone_inv')}
-            className="p-2.5 text-left rounded-lg bg-zinc-100 hover:bg-zinc-200/70 border border-zinc-200 text-xs font-medium text-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
+          <div
+            onClick={() => !isProcessing && fileInputRef.current?.click()}
+            className="p-2.5 text-left rounded-lg bg-zinc-50 hover:bg-zinc-100/80 border border-zinc-200 text-xs font-medium text-zinc-800 transition-colors cursor-pointer"
           >
-            <p className="font-semibold truncate">Factură Telecom</p>
-            <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">Vodafone România SA</p>
-          </button>
+            <p className="font-semibold truncate">Documente PDF</p>
+            <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">Facturi & Contracte</p>
+          </div>
 
-          <button
-            type="button"
-            disabled={isProcessing}
-            onClick={() => uploadPreset('dpd_ctr')}
-            className="p-2.5 text-left rounded-lg bg-zinc-100 hover:bg-zinc-200/70 border border-zinc-200 text-xs font-medium text-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
+          <div
+            onClick={() => !isProcessing && fileInputRef.current?.click()}
+            className="p-2.5 text-left rounded-lg bg-zinc-50 hover:bg-zinc-100/80 border border-zinc-200 text-xs font-medium text-zinc-800 transition-colors cursor-pointer"
           >
-            <p className="font-semibold truncate">Contract Curierat</p>
-            <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">DPD România Cadru</p>
-          </button>
+            <p className="font-semibold truncate">Imagini PNG / JPG</p>
+            <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">Scanări & Chitanțe</p>
+          </div>
 
-          <button
-            type="button"
-            disabled={isProcessing}
-            onClick={() => uploadPreset('lyreco_unclear')}
-            className="p-2.5 text-left rounded-lg bg-amber-50 hover:bg-amber-100/70 border border-amber-200 text-xs font-medium text-amber-900 transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <p className="font-semibold truncate">Scan Birotică (Neclar)</p>
-            <p className="text-[10px] text-amber-700 font-mono mt-0.5 truncate">Declanșează Revizuire</p>
-          </button>
+          <div className="p-2.5 text-left rounded-lg bg-zinc-50/50 border border-dashed border-zinc-300 text-xs font-medium text-zinc-400">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold truncate">Conectare RO e-Factura</p>
+              <span className="text-[9px] bg-zinc-200 text-zinc-700 px-1 rounded font-mono">În curând</span>
+            </div>
+            <p className="text-[10px] text-zinc-400 font-mono mt-0.5 truncate">Sincronizare SPV ANAF</p>
+          </div>
         </div>
       </div>
+
+      {/* Demo Test Presets — Strictly available ONLY in Demo Mode */}
+      {isDemoMode && (
+        <div className="pt-2 border-t border-zinc-200/80">
+          <p className="text-xs font-medium text-amber-800 mb-2 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <span>Documente Demonstrative de Test (Mod Demo):</span>
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <button
+              type="button"
+              disabled={isProcessing}
+              onClick={() => uploadPreset('efactura_xml')}
+              className="p-2.5 text-left rounded-lg bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-300 text-xs font-medium text-emerald-950 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-bold truncate">e-Factura XML</p>
+                <span className="text-[9px] bg-emerald-200 text-emerald-900 px-1 rounded font-mono font-bold">100%</span>
+              </div>
+              <p className="text-[10px] text-emerald-800 font-mono mt-0.5 truncate">ANAF UBL 2.1 Standard</p>
+            </button>
+
+            <button
+              type="button"
+              disabled={isProcessing}
+              onClick={() => uploadPreset('vodafone_inv')}
+              className="p-2.5 text-left rounded-lg bg-zinc-100 hover:bg-zinc-200/70 border border-zinc-200 text-xs font-medium text-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <p className="font-semibold truncate">Factură Telecom</p>
+              <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">Vodafone România SA</p>
+            </button>
+
+            <button
+              type="button"
+              disabled={isProcessing}
+              onClick={() => uploadPreset('dpd_ctr')}
+              className="p-2.5 text-left rounded-lg bg-zinc-100 hover:bg-zinc-200/70 border border-zinc-200 text-xs font-medium text-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <p className="font-semibold truncate">Contract Curierat</p>
+              <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate">DPD România Cadru</p>
+            </button>
+
+            <button
+              type="button"
+              disabled={isProcessing}
+              onClick={() => uploadPreset('lyreco_unclear')}
+              className="p-2.5 text-left rounded-lg bg-amber-50 hover:bg-amber-100/70 border border-amber-200 text-xs font-medium text-amber-900 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <p className="font-semibold truncate">Scan Birotică (Neclar)</p>
+              <p className="text-[10px] text-amber-700 font-mono mt-0.5 truncate">Declanșează Revizuire</p>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

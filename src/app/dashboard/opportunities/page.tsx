@@ -58,9 +58,13 @@ export default function OpportunitiesPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Economii Estimate Totale"
-          value={`${savingsSummary.estimatedSavingsMidpointRon.toLocaleString('ro-RO')} lei`}
+          value={
+            opportunities.length > 0 && savingsSummary.estimatedSavingsMidpointRon > 0
+              ? `${savingsSummary.estimatedSavingsMidpointRon.toLocaleString('ro-RO')} lei`
+              : '—'
+          }
           subtitle={
-            savingsSummary.estimatedSavingsMidpointRon > 0
+            opportunities.length > 0 && savingsSummary.estimatedSavingsMidpointRon > 0
               ? `Interval ${savingsSummary.estimatedSavingsMinRon.toLocaleString('ro-RO')} – ${savingsSummary.estimatedSavingsMaxRon.toLocaleString('ro-RO')} lei/an`
               : 'Nu există date de analiză suficiente'
           }
@@ -72,7 +76,7 @@ export default function OpportunitiesPage() {
         <StatCard
           title="Oportunități Deschise"
           value={savingsSummary.openOpportunitiesCount}
-          subtitle="Gata pentru renegociere"
+          subtitle={savingsSummary.openOpportunitiesCount > 0 ? "Gata pentru renegociere" : "Nicio oportunitate activă"}
           badgeText="Active"
           badgeVariant="purple"
           icon={Sparkles}
@@ -87,7 +91,11 @@ export default function OpportunitiesPage() {
         />
         <StatCard
           title="Grad Încredere Ridicată"
-          value={`${savingsSummary.savingsByConfidence.high.toLocaleString('ro-RO')} lei`}
+          value={
+            opportunities.length > 0 && savingsSummary.savingsByConfidence.high > 0
+              ? `${savingsSummary.savingsByConfidence.high.toLocaleString('ro-RO')} lei`
+              : '—'
+          }
           subtitle="Bazat pe oferte reale & audit"
           badgeText="Scor > 85%"
           badgeVariant="default"
@@ -144,8 +152,8 @@ export default function OpportunitiesPage() {
       {filteredOpportunities.length === 0 ? (
         <div className="p-12 text-center text-xs text-zinc-400 bg-white rounded-2xl border border-dashed border-zinc-200">
           <Sparkles className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-          <p className="font-semibold text-zinc-700">Nicio oportunitate identificată momentan.</p>
-          <p className="text-[11px] text-zinc-400 mt-1">Încarcă documente și contracte pentru a rula algoritmul de benchmark comparativ.</p>
+          <p className="font-semibold text-zinc-700 text-sm">Nu avem încă suficiente date pentru a identifica oportunități de economisire.</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Încarcă documente și contracte pentru a construi profilul de consum și a rula comparația cu piața.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

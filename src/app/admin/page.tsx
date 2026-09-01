@@ -207,7 +207,7 @@ export default function AdminPage() {
                   {optimizationRequests.map((req) => (
                     <tr key={req.id} className="hover:bg-zinc-50/80">
                       <td className="px-4 py-3.5">
-                        <p className="font-semibold text-zinc-900">{req.organizationName || 'Nova Retail SRL'}</p>
+                        <p className="font-semibold text-zinc-900">{req.organizationName || 'Organizație Client'}</p>
                         <p className="text-[10px] text-zinc-400 font-mono">{req.requestedByName}</p>
                       </td>
 
@@ -306,7 +306,7 @@ export default function AdminPage() {
                   {verifiedDemands.map((demand) => (
                     <tr key={demand.id} className="hover:bg-zinc-50/80">
                       <td className="px-4 py-3.5">
-                        <p className="font-semibold text-zinc-900">{demand.organizationName || 'Nova Retail SRL'}</p>
+                        <p className="font-semibold text-zinc-900">{demand.organizationName || 'Organizație Membră'}</p>
                         <Badge variant="default" size="sm" className="mt-0.5">{demand.category}</Badge>
                       </td>
 

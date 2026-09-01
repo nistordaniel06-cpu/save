@@ -7,9 +7,10 @@ import { SpendChart } from '@/components/dashboard/spend-chart';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, Building2, Layers, Search, Download } from 'lucide-react';
+import { DollarSign, TrendingUp, Building2, Layers, Search, Download, PieChart, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SpendCategory } from '@/lib/types';
+import Link from 'next/link';
 
 export default function SpendPage() {
   const { spendRecords, currentOrg } = useSave();
@@ -103,8 +104,28 @@ export default function SpendPage() {
         />
       </div>
 
-      {/* Spend Distribution Visuals */}
-      <SpendChart summary={summary} />
+      {spendRecords.length === 0 ? (
+        <div className="p-8 sm:p-12 text-center bg-white rounded-2xl border border-zinc-200 shadow-sm space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-500 mx-auto">
+            <PieChart className="w-6 h-6" />
+          </div>
+          <div className="space-y-1 max-w-md mx-auto">
+            <h3 className="text-base font-bold text-zinc-900">Nu există încă cheltuieli analizate</h3>
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Încarcă prima factură fiscală sau primul contract pentru a construi distribuția bugetară pe categorii și furnizori.
+            </p>
+          </div>
+          <Link href="/dashboard/documents">
+            <Button size="md" variant="emerald" className="gap-2 font-bold shadow-md shadow-emerald-500/20">
+              <Upload className="w-4 h-4" />
+              <span>Încarcă o factură</span>
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <>
+          {/* Spend Distribution Visuals */}
+          <SpendChart summary={summary} />
 
       {/* Supplier Spend Granular Table */}
       <Card>
@@ -200,6 +221,8 @@ export default function SpendPage() {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

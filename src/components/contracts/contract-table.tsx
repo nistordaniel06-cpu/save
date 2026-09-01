@@ -151,10 +151,17 @@ export function ContractTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {filteredContracts.length === 0 ? (
+              {contracts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-zinc-400">
+                    <p className="font-semibold text-zinc-700 text-sm">Nu ai încă contracte analizate.</p>
+                    <p className="text-xs text-zinc-400 mt-1">Încarcă un contract în Documente sau adaugă manual termenii pentru a monitoriza datele de preaviz.</p>
+                  </td>
+                </tr>
+              ) : filteredContracts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center text-zinc-400">
-                    Nu există contracte care să corespundă filtrului.
+                    Nu există contracte care să corespundă filtrului selectat.
                   </td>
                 </tr>
               ) : (

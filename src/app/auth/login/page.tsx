@@ -4,13 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, ArrowRight, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { SaveProvider, useSave } from '@/lib/context';
+import { ShieldCheck, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { SaveProvider } from '@/lib/context';
 import { supabase } from '@/lib/supabase/client';
 
 function LoginContent() {
   const router = useRouter();
-  const { resetToDemo } = useSave();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isMagicLink, setIsMagicLink] = useState(false);
@@ -47,14 +46,6 @@ function LoginContent() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = () => {
-    setIsLoading(true);
-    resetToDemo();
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 400);
   };
 
   return (
