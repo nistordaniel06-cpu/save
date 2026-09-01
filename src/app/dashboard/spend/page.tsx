@@ -7,11 +7,12 @@ import { SpendChart } from '@/components/dashboard/spend-chart';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, PieChart, TrendingUp, Building2, Layers, Search } from 'lucide-react';
+import { DollarSign, TrendingUp, Building2, Layers, Search, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { SpendCategory } from '@/lib/types';
 
 export default function SpendPage() {
-  const { spendRecords } = useSave();
+  const { spendRecords, currentOrg } = useSave();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchSupplier, setSearchSupplier] = useState('');
 
@@ -23,16 +24,47 @@ export default function SpendPage() {
     return matchesCat && matchesSearch;
   });
 
+  const exportCsv = () => {
+    const headers = ['Furnizor', 'Categorie', 'Rulaj Anual (RON)', 'Pondere in Total (%)'];
+    const rows = summary.supplierBreakdown.map((s) => [
+      `"${s.supplierName.replace(/"/g, '""')}"`,
+      `"${s.category}"`,
+      s.annualSpend.toFixed(2),
+      s.percentage.toFixed(1),
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `SAVE_Spend_Report_${currentOrg?.name?.replace(/\s+/g, '_') || 'Companie'}_2026.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="pb-2 border-b border-zinc-200">
-        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
-          Analiză Detaliată a Cheltuielilor Operaționale (Spend Analysis)
-        </h1>
-        <p className="text-xs text-zinc-500 mt-1">
-          Monitorizare granulară a cheltuielilor agregate pe furnizori, categorii și predictibilitate contractuală.
-        </p>
+      <div className="pb-2 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
+            Analiză Detaliată a Cheltuielilor Operaționale (Spend Analysis)
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Monitorizare granulară a cheltuielilor agregate pe furnizori, categorii și predictibilitate contractuală.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={exportCsv}
+          disabled={summary.supplierBreakdown.length === 0}
+          className="shrink-0 flex items-center gap-2"
+        >
+          <Download className="w-4 h-4 text-zinc-600" />
+          <span>Exportă CSV</span>
+        </Button>
       </div>
 
       {/* Top Spend Stats */}
