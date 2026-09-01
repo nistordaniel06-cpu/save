@@ -59,7 +59,11 @@ export default function OpportunitiesPage() {
         <StatCard
           title="Economii Estimate Totale"
           value={`${savingsSummary.estimatedSavingsMidpointRon.toLocaleString('ro-RO')} lei`}
-          subtitle="Interval 38.200 – 42.000 lei/an"
+          subtitle={
+            savingsSummary.estimatedSavingsMidpointRon > 0
+              ? `Interval ${savingsSummary.estimatedSavingsMinRon.toLocaleString('ro-RO')} – ${savingsSummary.estimatedSavingsMaxRon.toLocaleString('ro-RO')} lei/an`
+              : 'Nu există date de analiză suficiente'
+          }
           badgeText="ESTIMAT"
           badgeVariant="warning"
           icon={TrendingDown}
@@ -137,11 +141,19 @@ export default function OpportunitiesPage() {
       </div>
 
       {/* Opportunities Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredOpportunities.map((opp) => (
-          <OpportunityCard key={opp.id} opportunity={opp} />
-        ))}
-      </div>
+      {filteredOpportunities.length === 0 ? (
+        <div className="p-12 text-center text-xs text-zinc-400 bg-white rounded-2xl border border-dashed border-zinc-200">
+          <Sparkles className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
+          <p className="font-semibold text-zinc-700">Nicio oportunitate identificată momentan.</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Încarcă documente și contracte pentru a rula algoritmul de benchmark comparativ.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredOpportunities.map((opp) => (
+            <OpportunityCard key={opp.id} opportunity={opp} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -157,36 +157,44 @@ export default function SpendPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {filteredSuppliers.map((sup, idx) => (
-                  <tr key={sup.supplierName} className="hover:bg-zinc-50/80 transition-colors">
-                    <td className="px-4 py-3.5 font-semibold text-zinc-900">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-zinc-400 font-bold">{idx + 1}.</span>
-                        <span>{sup.supplierName}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <Badge variant="default" size="sm">{sup.category}</Badge>
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-zinc-900">
-                      {sup.annualSpend.toLocaleString('ro-RO')} lei
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-zinc-600">
-                      {Math.round(sup.annualSpend / 12).toLocaleString('ro-RO')} lei/lună
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-zinc-100 rounded-full h-1.5 overflow-hidden">
-                          <div
-                            className="bg-emerald-500 h-1.5 rounded-full"
-                            style={{ width: `${sup.percentage}%` }}
-                          />
-                        </div>
-                        <span className="font-mono text-xs text-zinc-700 font-semibold">{sup.percentage}%</span>
-                      </div>
+                {filteredSuppliers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-400">
+                      Niciun furnizor sau cheltuială înregistrată. Încarcă documente pentru a vizualiza rulajul.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredSuppliers.map((sup, idx) => (
+                    <tr key={sup.supplierName} className="hover:bg-zinc-50/80 transition-colors">
+                      <td className="px-4 py-3.5 font-semibold text-zinc-900">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-zinc-400 font-bold">{idx + 1}.</span>
+                          <span>{sup.supplierName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <Badge variant="default" size="sm">{sup.category}</Badge>
+                      </td>
+                      <td className="px-4 py-3.5 font-mono font-bold text-zinc-900">
+                        {sup.annualSpend.toLocaleString('ro-RO')} lei
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-zinc-600">
+                        {Math.round(sup.annualSpend / 12).toLocaleString('ro-RO')} lei/lună
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 bg-zinc-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-emerald-500 h-1.5 rounded-full"
+                              style={{ width: `${sup.percentage}%` }}
+                            />
+                          </div>
+                          <span className="font-mono text-xs text-zinc-700 font-semibold">{sup.percentage}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

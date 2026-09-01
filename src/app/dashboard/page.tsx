@@ -200,11 +200,19 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {opportunities.slice(0, 3).map((opp) => (
-            <OpportunityCard key={opp.id} opportunity={opp} />
-          ))}
-        </div>
+        {opportunities.length === 0 ? (
+          <div className="p-8 text-center text-xs text-zinc-500 bg-white rounded-2xl border border-dashed border-zinc-200">
+            <Sparkles className="w-6 h-6 text-zinc-400 mx-auto mb-2" />
+            <p className="font-semibold text-zinc-700">Nu există încă oportunități de optimizare</p>
+            <p className="text-[11px] text-zinc-400 mt-0.5">Încarcă facturi în format PDF sau XML e-Factura pentru a declanșa auditul automat de economii.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {opportunities.slice(0, 3).map((opp) => (
+              <OpportunityCard key={opp.id} opportunity={opp} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Contracts Expiration Radar & Recent Documents Grid */}
@@ -230,39 +238,46 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
-            {contracts.slice(0, 3).map((ctr) => {
-              const isUrgent = (ctr.daysUntilExpiry ?? 999) <= 30;
-              return (
-                <div
-                  key={ctr.id}
-                  className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-between text-xs"
-                >
-                  <div>
-                    <p className="font-semibold text-zinc-900 truncate max-w-xs">{ctr.title}</p>
-                    <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-mono mt-0.5">
-                      <span>{ctr.supplierName}</span>
-                      <span>•</span>
-                      <span>{ctr.annualValue.toLocaleString('ro-RO')} lei/an</span>
+            {contracts.length === 0 ? (
+              <div className="p-6 text-center text-xs text-zinc-400 bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
+                <p className="font-medium text-zinc-700">Niciun contract înregistrat</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">Adaugă contracte pentru a monitoriza termenele de preaviz și reînnoire.</p>
+              </div>
+            ) : (
+              contracts.slice(0, 3).map((ctr) => {
+                const isUrgent = (ctr.daysUntilExpiry ?? 999) <= 30;
+                return (
+                  <div
+                    key={ctr.id}
+                    className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-between text-xs"
+                  >
+                    <div>
+                      <p className="font-semibold text-zinc-900 truncate max-w-xs">{ctr.title}</p>
+                      <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-mono mt-0.5">
+                        <span>{ctr.supplierName}</span>
+                        <span>•</span>
+                        <span>{ctr.annualValue.toLocaleString('ro-RO')} lei/an</span>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      {isUrgent ? (
+                        <Badge variant="danger" size="sm">
+                          Expiră în {ctr.daysUntilExpiry} zile!
+                        </Badge>
+                      ) : (
+                        <Badge variant="warning" size="sm">
+                          Expiră în {ctr.daysUntilExpiry} zile
+                        </Badge>
+                      )}
+                      <p className="text-[10px] text-zinc-400 font-mono mt-1">
+                        Preaviz: {ctr.noticeDeadline}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="text-right">
-                    {isUrgent ? (
-                      <Badge variant="danger" size="sm">
-                        Expiră în {ctr.daysUntilExpiry} zile!
-                      </Badge>
-                    ) : (
-                      <Badge variant="warning" size="sm">
-                        Expiră în {ctr.daysUntilExpiry} zile
-                      </Badge>
-                    )}
-                    <p className="text-[10px] text-zinc-400 font-mono mt-1">
-                      Preaviz: {ctr.noticeDeadline}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </CardContent>
         </Card>
 
@@ -287,30 +302,37 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
-            {documents.slice(0, 3).map((doc) => (
-              <div
-                key={doc.id}
-                className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-between text-xs"
-              >
-                <div className="truncate max-w-xs">
-                  <p className="font-semibold text-zinc-900 truncate">{doc.fileName}</p>
-                  <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
-                    {doc.supplierName || 'În curs de identificare...'} • {doc.extraction?.invoiceTotal ? `${doc.extraction.invoiceTotal.toLocaleString('ro-RO')} lei` : '—'}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  {doc.status === 'requires_review' ? (
-                    <Badge variant="warning" size="sm">Necesită Revizuire</Badge>
-                  ) : (
-                    <Badge variant="success" size="sm">Scor {doc.extraction?.confidence || 90}%</Badge>
-                  )}
-                  <p className="text-[10px] text-zinc-400 font-mono mt-1">
-                    {new Date(doc.createdAt).toLocaleDateString('ro-RO')}
-                  </p>
-                </div>
+            {documents.length === 0 ? (
+              <div className="p-6 text-center text-xs text-zinc-400 bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
+                <p className="font-medium text-zinc-700">Niciun document procesat</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">Trage prima factură pentru a iniția analiza automată.</p>
               </div>
-            ))}
+            ) : (
+              documents.slice(0, 3).map((doc) => (
+                <div
+                  key={doc.id}
+                  className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/80 flex items-center justify-between text-xs"
+                >
+                  <div className="truncate max-w-xs">
+                    <p className="font-semibold text-zinc-900 truncate">{doc.fileName}</p>
+                    <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                      {doc.supplierName || 'În curs de identificare...'} • {doc.extraction?.invoiceTotal ? `${doc.extraction.invoiceTotal.toLocaleString('ro-RO')} lei` : '—'}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    {doc.status === 'requires_review' ? (
+                      <Badge variant="warning" size="sm">Necesită Revizuire</Badge>
+                    ) : (
+                      <Badge variant="success" size="sm">Scor {doc.extraction?.confidence || 90}%</Badge>
+                    )}
+                    <p className="text-[10px] text-zinc-400 font-mono mt-1">
+                      {new Date(doc.createdAt).toLocaleDateString('ro-RO')}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

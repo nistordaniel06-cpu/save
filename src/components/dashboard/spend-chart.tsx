@@ -42,44 +42,57 @@ export function SpendChart({ summary }: SpendChartProps) {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Stacked Progress Bar */}
-          <div className="h-4 w-full bg-zinc-100 rounded-full overflow-hidden flex gap-0.5">
-            {categoryEntries.map(([cat, data]) => (
-              <div
-                key={cat}
-                style={{ width: `${Math.max(2, data.percentage)}%` }}
-                className={clsx('h-full transition-all', CATEGORY_COLORS[cat]?.bar || 'bg-zinc-500')}
-                title={`${cat}: ${data.amount.toLocaleString('ro-RO')} lei (${data.percentage}%)`}
-              />
-            ))}
-          </div>
+          {categoryEntries.length === 0 ? (
+            <div className="p-8 text-center text-xs text-zinc-400 bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
+              Nu există încă cheltuieli înregistrate. Încarcă prima factură pentru a vizualiza distribuția pe categorii.
+            </div>
+          ) : (
+            <>
+              {/* Stacked Progress Bar */}
+              <div className="h-4 w-full bg-zinc-100 rounded-full overflow-hidden flex gap-0.5">
+                {categoryEntries.map(([cat, data]) => (
+                  <div
+                    key={cat}
+                    style={{ width: `${Math.max(2, data.percentage)}%` }}
+                    className={clsx('h-full transition-all', CATEGORY_COLORS[cat]?.bar || 'bg-zinc-500')}
+                    title={`${cat}: ${data.amount.toLocaleString('ro-RO')} lei (${data.percentage}%)`}
+                  />
+                ))}
+              </div>
 
-          {/* Detailed Category List */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            {categoryEntries.map(([cat, data]) => {
-              const color = CATEGORY_COLORS[cat] || { bg: 'bg-zinc-100', text: 'text-zinc-800', bar: 'bg-zinc-500' };
-              return (
-                <div
-                  key={cat}
-                  className="p-3 rounded-xl bg-zinc-50/70 border border-zinc-200/60 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className={clsx('w-3 h-3 rounded-full', color.bar)} />
-                    <div>
-                      <p className="text-xs font-semibold text-zinc-900">{cat}</p>
-                      <p className="text-[10px] text-zinc-400 font-mono">{data.count} înregistrări</p>
+              {/* Detailed Category List */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {categoryEntries.map(([cat, data]) => {
+                  const color = CATEGORY_COLORS[cat] || { bg: 'bg-zinc-100', text: 'text-zinc-800', bar: 'bg-zinc-500' };
+                  return (
+                    <div
+                      key={cat}
+                      className="p-3 rounded-xl bg-zinc-50/70 border border-zinc-200/60 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={clsx('w-2.5 h-2.5 rounded-full shrink-0', color.bar)} />
+                        <div>
+                          <p className="text-xs font-semibold text-zinc-900">{cat}</p>
+                          <p className="text-[10px] text-zinc-500 font-mono">
+                            {data.count} {data.count === 1 ? 'înregistrare' : 'înregistrări'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right font-mono">
+                        <p className="text-xs font-bold text-zinc-900">
+                          {data.amount.toLocaleString('ro-RO')} lei
+                        </p>
+                        <p className="text-[10px] text-zinc-500 font-bold">
+                          {data.percentage}%
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-mono font-bold text-zinc-900">
-                      {data.amount.toLocaleString('ro-RO')} lei
-                    </p>
-                    <p className="text-[10px] font-mono text-zinc-500">{data.percentage}% din total</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -130,17 +143,23 @@ export function SpendChart({ summary }: SpendChartProps) {
               <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                 Top Furnizori după Rulaj
               </p>
-              {summary.supplierBreakdown.slice(0, 3).map((sup, idx) => (
-                <div key={sup.supplierName} className="flex items-center justify-between text-xs py-1">
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="text-[10px] font-mono text-zinc-400 font-bold">{idx + 1}.</span>
-                    <span className="text-zinc-800 truncate max-w-[140px]">{sup.supplierName}</span>
+              {summary.supplierBreakdown.length === 0 ? (
+                <p className="text-[11px] text-zinc-400 italic py-2">
+                  Niciun furnizor identificat încă.
+                </p>
+              ) : (
+                summary.supplierBreakdown.slice(0, 3).map((sup, idx) => (
+                  <div key={sup.supplierName} className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="text-[10px] font-mono text-zinc-400 font-bold">{idx + 1}.</span>
+                      <span className="text-zinc-800 truncate max-w-[140px]">{sup.supplierName}</span>
+                    </div>
+                    <span className="font-mono font-semibold text-zinc-900 shrink-0">
+                      {sup.annualSpend.toLocaleString('ro-RO')} lei
+                    </span>
                   </div>
-                  <span className="font-mono font-semibold text-zinc-900 shrink-0">
-                    {sup.annualSpend.toLocaleString('ro-RO')} lei
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </div>
