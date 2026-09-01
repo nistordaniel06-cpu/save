@@ -640,6 +640,9 @@ export function SaveProvider({
       };
 
       await updateOrganization(targetOrg.id, {
+        verificationStatus: 'verified',
+        verifiedAt: now,
+        verifiedBy: 'ANAF API Registry',
         companyLookupSource: c.source,
         companyLookupCheckedAt: now,
         companyLookupStatus: c.status,
