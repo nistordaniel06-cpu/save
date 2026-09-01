@@ -66,7 +66,7 @@ function OnboardingContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-zinc-50 flex flex-col justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center space-y-2">
         <Link href="/" className="inline-flex items-center gap-2.5 mb-2 group">
           <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-zinc-950 font-black text-xl tracking-tighter shadow-md">
@@ -78,7 +78,7 @@ function OnboardingContent() {
           <Clock className="w-3.5 h-3.5" />
           <span>Configurare rapidă • Sub 2 minute</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
+        <h1 className="text-xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
           Înrolează Organizația în SAVE
         </h1>
         <p className="text-xs text-zinc-500 max-w-md mx-auto">
@@ -86,8 +86,8 @@ function OnboardingContent() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
-        <div className="bg-white py-8 px-6 sm:px-8 shadow-xl rounded-2xl border border-zinc-200 space-y-6">
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
+        <div className="bg-white py-6 sm:py-8 px-4 sm:px-8 shadow-xl rounded-2xl border border-zinc-200 space-y-5 sm:space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5 text-xs">
             {/* Company Name & CUI */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -99,7 +99,7 @@ function OnboardingContent() {
                   placeholder="ex: Apex Logistics SRL"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
+                  className="w-full px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
                 />
               </div>
 
@@ -110,7 +110,7 @@ function OnboardingContent() {
                   placeholder="ex: RO 41920831"
                   value={cui}
                   onChange={(e) => setCui(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white font-mono"
+                  className="w-full px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white font-mono"
                 />
               </div>
             </div>
@@ -122,7 +122,7 @@ function OnboardingContent() {
                 <select
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white cursor-pointer"
+                  className="w-full px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white cursor-pointer"
                 >
                   <option value="Retail & E-commerce">Retail & E-commerce</option>
                   <option value="Servicii Profesionale & B2B">Servicii Profesionale & B2B</option>
@@ -139,7 +139,7 @@ function OnboardingContent() {
                 <select
                   value={employeeRange}
                   onChange={(e) => setEmployeeRange(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white cursor-pointer"
+                  className="w-full px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white cursor-pointer"
                 >
                   <option value="1-9 angajați">1–9 angajați (Microîntreprindere)</option>
                   <option value="10-49 angajați">10–49 angajați (Companie Mică)</option>

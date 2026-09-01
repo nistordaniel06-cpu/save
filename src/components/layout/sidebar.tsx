@@ -16,16 +16,20 @@ import {
   RotateCcw,
   Plus,
   Zap,
-  TrendingDown,
-  Target,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import { useSave } from '@/lib/context';
 import { calculateSaveScore } from '@/lib/analytics/savings-calculator';
 import { clsx } from 'clsx';
 import { Badge } from '@/components/ui/badge';
 
-export function Sidebar() {
+interface SidebarProps {
+  isMobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { currentOrg, contracts, opportunities, spendRecords, resetToDemo, organizations, switchOrganization } = useSave();
   const [orgDropdownOpen, setOrgDropdownOpen] = React.useState(false);
@@ -85,11 +89,11 @@ export function Sidebar() {
     },
   ];
 
-  return (
-    <aside className="w-64 bg-zinc-950 text-zinc-300 flex flex-col h-screen border-r border-zinc-800 select-none">
+  const sidebarContent = (
+    <div className="flex flex-col h-full select-none">
       {/* Brand Header */}
-      <div className="p-5 pb-4 border-b border-zinc-800/80 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5 group">
+      <div className="p-4 sm:p-5 pb-4 border-b border-zinc-800/80 flex items-center justify-between">
+        <Link href="/" onClick={onClose} className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-zinc-950 font-black text-lg tracking-tighter shadow-md shadow-emerald-500/20 group-hover:bg-emerald-400 transition-colors">
             S
           </div>
@@ -103,6 +107,16 @@ export function Sidebar() {
             <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-mono">Procurement Intel</p>
           </div>
         </Link>
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+            aria-label="Închide meniul"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Organization Switcher */}
@@ -171,8 +185,9 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={clsx(
-                'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all group',
+                'flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all group',
                 isActive
                   ? 'bg-zinc-800 text-white font-semibold shadow-xs'
                   : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
@@ -205,14 +220,15 @@ export function Sidebar() {
           );
         })}
 
-        <div className="pt-5 px-3 pb-2 text-[10px] font-mono uppercase text-zinc-400 tracking-wider">
+        <div className="pt-4 px-3 pb-2 text-[10px] font-mono uppercase text-zinc-400 tracking-wider">
           Administrare & Sistem
         </div>
 
         <Link
           href="/admin"
+          onClick={onClose}
           className={clsx(
-            'flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all group',
+            'flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all group',
             pathname === '/admin'
               ? 'bg-zinc-800 text-white font-semibold'
               : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
@@ -268,6 +284,30 @@ export function Sidebar() {
           <span className="text-[10px] font-mono text-zinc-400">RLS Protejat</span>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside className="hidden md:flex w-64 bg-zinc-950 text-zinc-300 flex-col h-screen border-r border-zinc-800 shrink-0 select-none">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer Slide-out */}
+      {isMobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-zinc-950/80 backdrop-blur-xs"
+            onClick={onClose}
+          />
+          {/* Drawer Panel */}
+          <aside className="relative z-50 w-72 max-w-[85vw] bg-zinc-950 text-zinc-300 flex flex-col h-full border-r border-zinc-800 shadow-2xl animate-in slide-in-from-left duration-200">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

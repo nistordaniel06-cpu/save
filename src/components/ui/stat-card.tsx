@@ -40,7 +40,7 @@ export function StatCard({
     <Card
       className={twMerge(
         clsx(
-          'p-5 relative flex flex-col justify-between transition-all hover:border-zinc-300',
+          'p-4 sm:p-5 relative flex flex-col justify-between transition-all hover:border-zinc-300',
           highlight && 'ring-1 ring-emerald-500/20 bg-gradient-to-b from-emerald-50/20 to-white',
           className
         )
@@ -48,28 +48,28 @@ export function StatCard({
     >
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <p className="text-xs font-medium text-zinc-500 tracking-wide uppercase">{title}</p>
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <p className="text-[11px] sm:text-xs font-medium text-zinc-500 tracking-wide uppercase">{title}</p>
             {badgeText && (
               <Badge variant={badgeVariant} size="sm">
                 {badgeText}
               </Badge>
             )}
           </div>
-          <div className="mt-2 text-2xl font-bold text-zinc-900 tracking-tight font-mono">
+          <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight font-mono">
             {value}
           </div>
         </div>
 
         {Icon && (
-          <div className="p-2.5 rounded-lg bg-zinc-100 text-zinc-700 border border-zinc-200/60">
-            <Icon className="w-5 h-5" />
+          <div className="p-2 sm:p-2.5 rounded-lg bg-zinc-100 text-zinc-700 border border-zinc-200/60 shrink-0">
+            <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         )}
       </div>
 
       {(subtitle || trend || actionText) && (
-        <div className="mt-4 pt-3 border-t border-zinc-100/80 flex items-center justify-between text-xs text-zinc-500">
+        <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-zinc-100/80 flex items-center justify-between text-xs text-zinc-500">
           <div className="flex items-center gap-2">
             {trend && (
               <span

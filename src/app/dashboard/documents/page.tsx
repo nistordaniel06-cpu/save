@@ -30,7 +30,7 @@ export default function DocumentsPage() {
 
       {/* Upload Zone Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3">
           <div>
             <CardTitle>Încărcare Documente & Facturi</CardTitle>
             <CardDescription>

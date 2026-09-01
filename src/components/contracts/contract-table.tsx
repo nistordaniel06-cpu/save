@@ -73,7 +73,7 @@ export function ContractTable() {
   return (
     <div className="space-y-4">
       {/* Top Filter & Actions Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
           <input
@@ -81,17 +81,17 @@ export function ContractTable() {
             placeholder="Caută contracte, furnizori..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
+            className="w-full pl-9 pr-3 py-2 text-sm sm:text-xs rounded-xl border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
           {/* Expiration Radar Filter */}
-          <div className="flex items-center p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs">
+          <div className="flex items-center overflow-x-auto p-1 bg-zinc-100 rounded-xl border border-zinc-200 text-xs shrink-0">
             <button
               onClick={() => setFilterPeriod('all')}
               className={clsx(
-                'px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer',
+                'px-2 py-1 sm:px-2.5 rounded-lg font-medium transition-all cursor-pointer text-xs',
                 filterPeriod === 'all' ? 'bg-white text-zinc-900 shadow-xs font-semibold' : 'text-zinc-600'
               )}
             >
@@ -100,7 +100,7 @@ export function ContractTable() {
             <button
               onClick={() => setFilterPeriod('30')}
               className={clsx(
-                'px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1',
+                'px-2 py-1 sm:px-2.5 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 text-xs',
                 filterPeriod === '30' ? 'bg-rose-50 text-rose-800 shadow-xs font-semibold' : 'text-zinc-600'
               )}
             >
@@ -110,7 +110,7 @@ export function ContractTable() {
             <button
               onClick={() => setFilterPeriod('60')}
               className={clsx(
-                'px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1',
+                'px-2 py-1 sm:px-2.5 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 text-xs',
                 filterPeriod === '60' ? 'bg-amber-50 text-amber-800 shadow-xs font-semibold' : 'text-zinc-600'
               )}
             >
@@ -120,7 +120,7 @@ export function ContractTable() {
             <button
               onClick={() => setFilterPeriod('90')}
               className={clsx(
-                'px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1',
+                'px-2 py-1 sm:px-2.5 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 text-xs',
                 filterPeriod === '90' ? 'bg-blue-50 text-blue-800 shadow-xs font-semibold' : 'text-zinc-600'
               )}
             >

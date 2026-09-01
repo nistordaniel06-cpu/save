@@ -58,15 +58,15 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-zinc-50 flex flex-col justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center gap-2.5 mb-4 group">
+        <Link href="/" className="inline-flex items-center gap-2.5 mb-3 sm:mb-4 group">
           <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-zinc-950 font-black text-xl tracking-tighter shadow-md">
             S
           </div>
           <span className="font-bold text-zinc-900 text-xl tracking-tight">SAVE</span>
         </Link>
-        <h2 className="text-2xl font-bold text-zinc-900 tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
           Autentificare în Contul Companiei
         </h2>
         <p className="mt-1 text-xs text-zinc-500">
@@ -74,10 +74,10 @@ function LoginContent() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-white py-8 px-6 shadow-xl rounded-2xl border border-zinc-200 space-y-6">
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md px-2 sm:px-0">
+        <div className="bg-white py-6 sm:py-8 px-4 sm:px-6 shadow-xl rounded-2xl border border-zinc-200 space-y-5 sm:space-y-6">
           {/* Quick Demo Access Button */}
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
+          <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
             <div className="flex items-center justify-between font-bold text-emerald-950">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-emerald-600" />
@@ -108,7 +108,7 @@ function LoginContent() {
               <div className="w-full border-t border-zinc-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 text-zinc-400 font-mono text-[10px]">sau contul tău real Supabase</span>
+              <span className="bg-white px-2 text-zinc-400 font-mono text-[10px]">sau autentificare cu credențiale</span>
             </div>
           </div>
 
@@ -135,7 +135,7 @@ function LoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nume@companie.ro"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
+                className="w-full px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
               />
             </div>
 
@@ -157,7 +157,7 @@ function LoginContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Parola ta securizată"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
+                  className="w-full px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
                 />
               </div>
             )}

@@ -36,8 +36,8 @@ export default function LandingPage() {
 
       {/* Navigation */}
       <header className="border-b border-zinc-100 bg-white/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-zinc-950 font-black text-lg tracking-tighter shadow-md shadow-emerald-500/20 group-hover:bg-emerald-400 transition-colors">
               S
             </div>
@@ -57,15 +57,16 @@ export default function LandingPage() {
             <a href="#faq" className="hover:text-zinc-900 transition-colors">Întrebări Frecvente</a>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link href="/auth/login">
-              <Button size="sm" variant="ghost" className="text-xs">
+              <Button size="sm" variant="ghost" className="text-xs px-2.5 sm:px-3">
                 Autentificare
               </Button>
             </Link>
             <Link href="/dashboard">
-              <Button size="sm" variant="primary" className="text-xs gap-1.5 shadow-sm">
-                <span>Deschide Demo Nova Retail</span>
+              <Button size="sm" variant="primary" className="text-xs gap-1.5 shadow-sm px-2.5 sm:px-3">
+                <span className="hidden sm:inline">Deschide Demo Nova Retail</span>
+                <span className="sm:hidden">Demo</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </Link>
@@ -74,30 +75,30 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-20 pb-16 px-6 max-w-5xl mx-auto text-center space-y-8">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100 border border-zinc-200/80 text-xs font-semibold text-zinc-800">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+      <section className="pt-10 sm:pt-20 pb-12 sm:pb-16 px-4 sm:px-6 max-w-5xl mx-auto text-center space-y-6 sm:space-y-8">
+        <div className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-zinc-100 border border-zinc-200/80 text-[11px] sm:text-xs font-semibold text-zinc-800">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
           <span>Puterea de negociere a marilor corporații, acum accesibilă IMM-urilor</span>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl font-black text-zinc-950 tracking-tight leading-[1.08]">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-zinc-950 tracking-tight leading-[1.1]">
           Nu negociezi singur. SAVE agregă puterea de cumpărare a IMM-urilor.
         </h1>
 
-        <p className="text-base sm:text-xl text-zinc-600 max-w-3xl mx-auto leading-relaxed">
+        <p className="text-sm sm:text-lg md:text-xl text-zinc-600 max-w-3xl mx-auto leading-relaxed">
           SAVE agregă cererea a zeci de IMM-uri din România pentru a obține prețuri corporate la telecom, curierat și software prin licitații directe și anonime.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 sm:pt-4">
           <Link href="/onboarding" className="w-full sm:w-auto">
-            <Button size="lg" variant="emerald" className="w-full sm:w-auto text-base gap-2 px-8 h-12 shadow-lg shadow-emerald-500/20">
+            <Button size="lg" variant="emerald" className="w-full sm:w-auto text-sm sm:text-base gap-2 px-6 sm:px-8 h-12 shadow-lg shadow-emerald-500/20">
               <Sparkles className="w-4 h-4" />
               <span>Analizează-mi costurile</span>
             </Button>
           </Link>
 
           <a href="#how-it-works" className="w-full sm:w-auto">
-            <Button size="lg" variant="outline" className="w-full sm:w-auto text-base h-12 px-8">
+            <Button size="lg" variant="outline" className="w-full sm:w-auto text-sm sm:text-base h-12 px-6 sm:px-8">
               Vezi cum funcționează
             </Button>
           </a>

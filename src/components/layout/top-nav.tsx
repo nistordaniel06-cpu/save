@@ -5,12 +5,10 @@ import Link from 'next/link';
 import { 
   Upload, 
   Shield, 
-  HelpCircle, 
   RotateCcw,
-  Sparkles,
-  FileCheck,
-  CheckCircle2,
-  LogOut
+  LogOut,
+  Menu,
+  CheckCircle2
 } from 'lucide-react';
 import { useSave } from '@/lib/context';
 import { Button } from '@/components/ui/button';
@@ -18,7 +16,11 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { Dropzone } from '@/components/documents/dropzone';
 
-export function TopNav() {
+interface TopNavProps {
+  onOpenMobileMenu?: () => void;
+}
+
+export function TopNav({ onOpenMobileMenu }: TopNavProps) {
   const { currentOrg, currentUser, resetToDemo, supabaseUser, signOut } = useSave();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [showDemoToast, setShowDemoToast] = useState(false);
@@ -31,27 +33,37 @@ export function TopNav() {
 
   return (
     <>
-      <header className="h-16 border-b border-zinc-200/80 bg-white/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
-        {/* Left: Organization context & Badge */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-zinc-900 text-sm tracking-tight" suppressHydrationWarning>
+      <header className="h-16 border-b border-zinc-200/80 bg-white/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20">
+        {/* Left: Mobile hamburger & Organization context */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {onOpenMobileMenu && (
+            <button
+              onClick={onOpenMobileMenu}
+              className="md:hidden p-2 -ml-1 rounded-xl text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 transition-colors cursor-pointer"
+              aria-label="Deschide meniul lateral"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
+
+          <div className="flex items-center gap-1.5 sm:gap-2 truncate max-w-[140px] sm:max-w-none">
+            <span className="font-semibold text-zinc-900 text-xs sm:text-sm tracking-tight truncate" suppressHydrationWarning>
               {currentOrg.name}
             </span>
             {currentOrg.isDemo && (
-              <Badge variant="subtle" size="sm">
-                Organizație Demo
+              <Badge variant="subtle" size="sm" className="hidden sm:inline-flex">
+                Demo
               </Badge>
             )}
           </div>
-          <span className="text-zinc-300">/</span>
-          <span className="text-xs text-zinc-500 font-mono" suppressHydrationWarning>
+          <span className="text-zinc-300 hidden sm:inline">/</span>
+          <span className="text-xs text-zinc-500 font-mono hidden sm:inline" suppressHydrationWarning>
             {currentOrg.industry}
           </span>
         </div>
 
         {/* Right: Actions, Quick Upload, and User Nav */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Security Indicator */}
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-medium text-emerald-800">
             <Shield className="w-3.5 h-3.5 text-emerald-600" />
@@ -61,11 +73,11 @@ export function TopNav() {
           {/* Reset Demo Trigger */}
           <button
             onClick={handleResetDemo}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors border border-zinc-200 cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors border border-zinc-200 cursor-pointer"
             title="Reinițializează starea demo"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset Demo</span>
+            <span>Reset Demo</span>
           </button>
 
           {/* Quick Upload CTA */}
@@ -73,15 +85,16 @@ export function TopNav() {
             size="sm"
             variant="primary"
             onClick={() => setIsUploadOpen(true)}
-            className="gap-2"
+            className="gap-1.5 px-2.5 sm:px-3 text-xs"
           >
             <Upload className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Încarcă Document</span>
+            <span className="hidden sm:inline">Încarcă Document</span>
+            <span className="sm:hidden">Încarcă</span>
           </Button>
 
           {/* User Profile Pill & Logout */}
-          <div className="flex items-center gap-2 pl-2 border-l border-zinc-200">
-            <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-xs border border-zinc-800">
+          <div className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-2 border-l border-zinc-200">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-xs border border-zinc-800">
               {currentUser.fullName.split(' ').map(n => n[0]).join('')}
             </div>
             <div className="hidden lg:block text-left">
@@ -91,7 +104,7 @@ export function TopNav() {
             {supabaseUser && (
               <button
                 onClick={() => signOut()}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors ml-1 cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors cursor-pointer"
                 title="Deconectare cont Supabase"
               >
                 <LogOut className="w-4 h-4" />
