@@ -73,26 +73,13 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           <Link
-            href="/admin/scraper"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
+            href="/dashboard"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold shadow-xs transition-colors"
           >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Master Scraper România (PJ + PF)</span>
+            <span>Mergi la Dashboard Client</span>
           </Link>
-
-          <Link
-            href="/admin/bucharest-prospects"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-xs transition-colors"
-          >
-            <span>Decidenți București</span>
-          </Link>
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 text-white text-xs font-mono">
-            <Lock className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Owner Restricted</span>
-          </div>
         </div>
       </div>
 

@@ -39,6 +39,7 @@ import {
   Share2
 } from 'lucide-react';
 import clsx from 'clsx';
+import { ScraperAuthGate } from '@/components/admin/scraper-auth-gate';
 
 export default function MasterNationalScraperPage() {
   const [selectedEntityType, setSelectedEntityType] = useState<'all' | EntityType>('all');
@@ -125,7 +126,8 @@ export default function MasterNationalScraperPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <ScraperAuthGate>
+      <div className="space-y-8">
       {/* Header & Access Lock */}
       <div className="pb-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -650,6 +652,7 @@ export default function MasterNationalScraperPage() {
         </div>
       )}
 
-    </div>
+      </div>
+    </ScraperAuthGate>
   );
 }

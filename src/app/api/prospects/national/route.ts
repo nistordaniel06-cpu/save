@@ -5,8 +5,13 @@ import {
   RomanianRegion 
 } from '@/lib/prospects/national-scraper';
 import { generateNationalPitch } from '@/lib/prospects/national-pitch-engine';
+import { isScraperAuthorized } from '@/lib/prospects/scraper-auth';
 
 export async function GET(req: NextRequest) {
+  if (!isScraperAuthorized(req)) {
+    return NextResponse.json({ error: 'Acces interzis. Parolă master invalidă.' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const entityType = searchParams.get('entityType') || 'all';
@@ -36,6 +41,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isScraperAuthorized(req)) {
+    return NextResponse.json({ error: 'Acces interzis. Parolă master invalidă.' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { lead } = body;

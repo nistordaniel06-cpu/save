@@ -36,6 +36,7 @@ import {
   Share2
 } from 'lucide-react';
 import clsx from 'clsx';
+import { ScraperAuthGate } from '@/components/admin/scraper-auth-gate';
 
 export default function BucharestProspectsPage() {
   const [selectedRole, setSelectedRole] = useState<'all' | DecisionMakerRole>('all');
@@ -115,7 +116,8 @@ export default function BucharestProspectsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <ScraperAuthGate>
+      <div className="space-y-8">
       {/* Navigation & Header */}
       <div className="pb-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -589,6 +591,7 @@ export default function BucharestProspectsPage() {
         </div>
       )}
 
-    </div>
+      </div>
+    </ScraperAuthGate>
   );
 }

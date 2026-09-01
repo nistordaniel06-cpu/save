@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeRomanianLeads, fetchAnafCompanyData } from '@/lib/prospects/company-scraper';
 import { generateProspectPitch } from '@/lib/prospects/lead-scoring';
+import { isScraperAuthorized } from '@/lib/prospects/scraper-auth';
 
 export async function GET(req: NextRequest) {
+  if (!isScraperAuthorized(req)) {
+    return NextResponse.json({ error: 'Acces interzis. Parolă master invalidă.' }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const industry = searchParams.get('industry') || 'all';
@@ -30,6 +35,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isScraperAuthorized(req)) {
+    return NextResponse.json({ error: 'Acces interzis. Parolă master invalidă.' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { lead } = body;

@@ -28,6 +28,7 @@ import {
   Filter
 } from 'lucide-react';
 import clsx from 'clsx';
+import { ScraperAuthGate } from '@/components/admin/scraper-auth-gate';
 
 export default function AdminProspectsPage() {
   const [selectedIndustry, setSelectedIndustry] = useState('all');
@@ -87,7 +88,8 @@ export default function AdminProspectsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <ScraperAuthGate>
+      <div className="space-y-8">
       {/* Admin Nav & Header */}
       <div className="pb-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -468,6 +470,7 @@ export default function AdminProspectsPage() {
         </div>
       )}
 
-    </div>
+      </div>
+    </ScraperAuthGate>
   );
 }
