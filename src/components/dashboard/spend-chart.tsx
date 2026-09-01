@@ -1,26 +1,35 @@
 'use client';
 
 import React from 'react';
-import { SpendSummary } from '@/lib/analytics/spend-calculator';
+import { SpendSummary, calculateSpendSummary } from '@/lib/analytics/spend-calculator';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { SpendCategory } from '@/lib/types';
+import { SpendCategory, SpendRecord } from '@/lib/types';
 import { clsx } from 'clsx';
 
 interface SpendChartProps {
-  summary: SpendSummary;
+  summary?: SpendSummary;
+  spendRecords?: SpendRecord[];
 }
 
 const CATEGORY_COLORS: Record<SpendCategory, { bg: string; text: string; bar: string }> = {
   Energie: { bg: 'bg-amber-100', text: 'text-amber-800', bar: 'bg-amber-500' },
+  Utilități: { bg: 'bg-amber-100', text: 'text-amber-800', bar: 'bg-amber-500' },
   Curierat: { bg: 'bg-blue-100', text: 'text-blue-800', bar: 'bg-blue-600' },
   Servicii: { bg: 'bg-violet-100', text: 'text-violet-800', bar: 'bg-violet-600' },
+  'Servicii profesionale': { bg: 'bg-indigo-100', text: 'text-indigo-800', bar: 'bg-indigo-600' },
   Consumabile: { bg: 'bg-emerald-100', text: 'text-emerald-800', bar: 'bg-emerald-600' },
   Software: { bg: 'bg-cyan-100', text: 'text-cyan-800', bar: 'bg-cyan-600' },
   Telecom: { bg: 'bg-rose-100', text: 'text-rose-800', bar: 'bg-rose-500' },
+  Marketing: { bg: 'bg-pink-100', text: 'text-pink-800', bar: 'bg-pink-500' },
+  Chirie: { bg: 'bg-teal-100', text: 'text-teal-800', bar: 'bg-teal-600' },
+  Transport: { bg: 'bg-orange-100', text: 'text-orange-800', bar: 'bg-orange-500' },
+  Mentenanță: { bg: 'bg-yellow-100', text: 'text-yellow-800', bar: 'bg-yellow-600' },
+  Echipamente: { bg: 'bg-slate-100', text: 'text-slate-800', bar: 'bg-slate-600' },
   Altele: { bg: 'bg-zinc-100', text: 'text-zinc-800', bar: 'bg-zinc-500' },
 };
 
-export function SpendChart({ summary }: SpendChartProps) {
+export function SpendChart({ summary: initialSummary, spendRecords }: SpendChartProps) {
+  const summary = initialSummary || calculateSpendSummary(spendRecords || []);
   const categoryEntries = Object.entries(summary.categoryBreakdown)
     .filter(([_, data]) => data.amount > 0)
     .sort((a, b) => b[1].amount - a[1].amount) as [SpendCategory, { amount: number; percentage: number; count: number }][];

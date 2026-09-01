@@ -6,11 +6,18 @@ export type DocumentStatus = 'uploaded' | 'processing' | 'extracted' | 'requires
 
 export type SpendCategory = 
   | 'Telecom'
-  | 'Software'
   | 'Curierat'
+  | 'Software'
   | 'Consumabile'
+  | 'Marketing'
+  | 'Chirie'
   | 'Energie'
+  | 'Utilități'
+  | 'Transport'
   | 'Servicii'
+  | 'Servicii profesionale'
+  | 'Mentenanță'
+  | 'Echipamente'
   | 'Altele';
 
 export type ContractStatus = 'active' | 'in_renewal_window' | 'expired' | 'renegotiated' | 'terminated';
@@ -197,6 +204,11 @@ export interface Supplier {
   totalAnnualSpendRon: number;
   contractCount: number;
   invoiceCount: number;
+  firstInvoiceDate?: string;
+  lastInvoiceDate?: string;
+  last30DaysSpendRon?: number;
+  last12MonthsSpendRon?: number;
+  averageInvoiceAmountRon?: number;
   createdAt: string;
 }
 
@@ -228,6 +240,9 @@ export interface DocumentExtraction {
   customerCui?: string;
   documentType: DocumentType;
   category: SpendCategory;
+  classificationSource?: 'rule_based' | 'ai' | 'user_override';
+  classificationConfidence?: number;
+  isIssuedInvoice?: boolean;
   invoiceNumber?: string;
   invoiceDate?: string;
   dueDate?: string;
@@ -303,6 +318,7 @@ export interface SavingsOpportunity {
   estimatedSavingsMax: number;
   confidenceLevel: OpportunityConfidence;
   provenance: OpportunityProvenance;
+  opportunityType?: 'insight' | 'optimization_candidate' | 'verified_saving';
   benchmarkReference?: string;
   reason: string;
   recommendedAction: string;
@@ -316,11 +332,17 @@ export interface OptimizationRequest {
   organizationName?: string;
   opportunityId?: string;
   opportunityTitle?: string;
+  category?: SpendCategory;
   supplierId?: string;
   supplierName?: string;
+  location?: string;
+  approximateVolume?: string;
+  requirements?: string;
+  desiredDurationMonths?: number;
   requestedBy: string;
   requestedByName: string;
   status: OptimizationStatus;
+  procurementStatus?: 'draft' | 'submitted' | 'under_review' | 'inviting_suppliers' | 'offers_received' | 'completed' | 'cancelled';
   initialAnnualCost: number;
   targetAnnualCost?: number;
   achievedAnnualSavings: number;

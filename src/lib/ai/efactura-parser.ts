@@ -98,9 +98,82 @@ export function categorizeInvoice(supplierName: string, linesDescription: string
     text.includes('cartus') ||
     text.includes('hartie') ||
     text.includes('consumabile') ||
-    text.includes('ambalaje')
+    text.includes('ambalaje') ||
+    text.includes('birotică') ||
+    text.includes('piese schimb')
   ) {
     return 'Consumabile';
+  }
+
+  if (
+    text.includes('marketing') ||
+    text.includes('reclama') ||
+    text.includes('promovare') ||
+    text.includes('facebook') ||
+    text.includes('meta') ||
+    text.includes('google ads') ||
+    text.includes('publicitate') ||
+    text.includes('seo') ||
+    text.includes('campanie')
+  ) {
+    return 'Marketing';
+  }
+
+  if (
+    text.includes('chirie') ||
+    text.includes('spatiu comercial') ||
+    text.includes('inchiriere birou') ||
+    text.includes('locatie') ||
+    text.includes('sediu')
+  ) {
+    return 'Chirie';
+  }
+
+  if (
+    text.includes('transport') ||
+    text.includes('marfa') ||
+    text.includes('flota') ||
+    text.includes('camion') ||
+    text.includes('combustibil') ||
+    text.includes('motorina') ||
+    text.includes('benzina') ||
+    text.includes('omv') ||
+    text.includes('rompetrol') ||
+    text.includes('mol')
+  ) {
+    return 'Transport';
+  }
+
+  if (
+    text.includes('mentenanta') ||
+    text.includes('reparatie') ||
+    text.includes('service') ||
+    text.includes('intretinere') ||
+    text.includes('revizie')
+  ) {
+    return 'Mentenanță';
+  }
+
+  if (
+    text.includes('echipament') ||
+    text.includes('laptop') ||
+    text.includes('computer') ||
+    text.includes('imprimanta') ||
+    text.includes('utilaj') ||
+    text.includes('hardware')
+  ) {
+    return 'Echipamente';
+  }
+
+  if (
+    text.includes('avocat') ||
+    text.includes('contabilitate') ||
+    text.includes('audit') ||
+    text.includes('consultanta') ||
+    text.includes('notar') ||
+    text.includes('juridic')
+  ) {
+    return 'Servicii';
   }
 
   return 'Servicii';

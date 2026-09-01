@@ -81,9 +81,15 @@ interface SaveContextType {
   deleteDocument: (documentId: string) => Promise<void>;
   createOptimizationRequest: (data: {
     opportunityId?: string;
+    opportunityTitle?: string;
+    category?: SpendCategory;
     supplierId?: string;
-    supplierName: string;
-    initialAnnualCost: number;
+    supplierName?: string;
+    location?: string;
+    approximateVolume?: string;
+    requirements?: string;
+    desiredDurationMonths?: number;
+    initialAnnualCost?: number;
     clientNotes?: string;
   }) => Promise<OptimizationRequest>;
   updateOptimizationStatus: (
@@ -1263,9 +1269,15 @@ export function SaveProvider({
 
   const createOptimizationRequest = async (data: {
     opportunityId?: string;
+    opportunityTitle?: string;
+    category?: SpendCategory;
     supplierId?: string;
-    supplierName: string;
-    initialAnnualCost: number;
+    supplierName?: string;
+    location?: string;
+    approximateVolume?: string;
+    requirements?: string;
+    desiredDurationMonths?: number;
+    initialAnnualCost?: number;
     clientNotes?: string;
   }): Promise<OptimizationRequest> => {
     const opp = state.opportunities.find((o) => o.id === data.opportunityId);
@@ -1275,16 +1287,22 @@ export function SaveProvider({
       organizationId: state.currentOrg.id,
       organizationName: state.currentOrg.name,
       opportunityId: data.opportunityId,
-      opportunityTitle: opp?.title,
+      opportunityTitle: data.opportunityTitle || opp?.title,
+      category: data.category,
       supplierId: data.supplierId,
       supplierName: data.supplierName,
+      location: data.location,
+      approximateVolume: data.approximateVolume,
+      requirements: data.requirements,
+      desiredDurationMonths: data.desiredDurationMonths,
       requestedBy: state.currentUser.id,
       requestedByName: state.currentUser.fullName,
       status: 'new',
-      initialAnnualCost: data.initialAnnualCost,
+      procurementStatus: 'submitted',
+      initialAnnualCost: data.initialAnnualCost || 0,
       achievedAnnualSavings: 0,
       clientNotes: data.clientNotes,
-      operatorNotes: 'Cerere recepționată. Un specialist SAVE va evalua contractul în maxim 24h.',
+      operatorNotes: 'Cerere de ofertă recepționată. Un specialist SAVE Procurement contactează furnizorii acreditați.',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -1297,7 +1315,7 @@ export function SaveProvider({
           opportunity_id: data.opportunityId || null,
           supplier_id: data.supplierId || null,
           requested_by: supabaseUser?.id || null,
-          initial_annual_cost: data.initialAnnualCost,
+          initial_annual_cost: data.initialAnnualCost || 0,
           status: 'new',
           client_notes: data.clientNotes,
         });

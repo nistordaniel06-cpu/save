@@ -2,11 +2,18 @@ import { z } from 'zod';
 
 export const SpendCategorySchema = z.enum([
   'Telecom',
-  'Software',
   'Curierat',
+  'Software',
   'Consumabile',
+  'Marketing',
+  'Chirie',
   'Energie',
+  'Utilități',
+  'Transport',
   'Servicii',
+  'Servicii profesionale',
+  'Mentenanță',
+  'Echipamente',
   'Altele',
 ]);
 

@@ -11,7 +11,7 @@ export interface MarketBenchmarkItem {
   sampleSize: number;
 }
 
-export const ROMANIAN_MARKET_BENCHMARKS: Record<SpendCategory, MarketBenchmarkItem> = {
+export const ROMANIAN_MARKET_BENCHMARKS: Partial<Record<SpendCategory, MarketBenchmarkItem>> = {
   Telecom: {
     category: 'Telecom',
     serviceTier: 'Voce & Date Nelimitat 5G Business',
@@ -115,8 +115,21 @@ export interface ProposalEvaluationResult {
   };
 }
 
+export function getBenchmarkForCategory(category: SpendCategory): MarketBenchmarkItem {
+  return ROMANIAN_MARKET_BENCHMARKS[category] || ROMANIAN_MARKET_BENCHMARKS.Altele || {
+    category: 'Altele',
+    serviceTier: 'Servicii Generale',
+    unitMetric: 'lei/luna',
+    p25Price: 500.00,
+    p50MedianPrice: 1000.00,
+    p75Price: 1500.00,
+    currency: 'RON',
+    sampleSize: 50,
+  };
+}
+
 export function evaluateSupplierProposal(input: ProposalEvaluationInput): ProposalEvaluationResult {
-  const benchmark = ROMANIAN_MARKET_BENCHMARKS[input.category] || ROMANIAN_MARKET_BENCHMARKS.Servicii;
+  const benchmark = getBenchmarkForCategory(input.category);
   const annualCost = input.proposedAnnualCost;
 
   let unitPrice = input.unitPrice;

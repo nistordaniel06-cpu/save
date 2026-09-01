@@ -61,7 +61,9 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
                 <span>Economie Estimată</span>
               </p>
               <p className="text-sm sm:text-base font-bold text-emerald-600 font-mono mt-0.5">
-                {opportunity.estimatedSavingsMin.toLocaleString('ro-RO')} – {opportunity.estimatedSavingsMax.toLocaleString('ro-RO')} lei
+                {opportunity.estimatedSavingsMax > 0
+                  ? `${opportunity.estimatedSavingsMin.toLocaleString('ro-RO')} – ${opportunity.estimatedSavingsMax.toLocaleString('ro-RO')} lei`
+                  : 'Cere oferte (În evaluare)'}
               </p>
             </div>
           </div>

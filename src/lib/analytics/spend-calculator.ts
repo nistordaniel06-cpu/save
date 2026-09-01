@@ -11,6 +11,31 @@ export interface SpendSummary {
   monthlyTrend: Array<{ month: string; amount: number }>;
 }
 
+const ALL_CATEGORIES: SpendCategory[] = [
+  'Telecom',
+  'Curierat',
+  'Software',
+  'Consumabile',
+  'Marketing',
+  'Chirie',
+  'Energie',
+  'Utilități',
+  'Transport',
+  'Servicii',
+  'Servicii profesionale',
+  'Mentenanță',
+  'Echipamente',
+  'Altele'
+];
+
+function createEmptyCategoryBreakdown(): Record<SpendCategory, { amount: number; percentage: number; count: number }> {
+  const map = {} as Record<SpendCategory, { amount: number; percentage: number; count: number }>;
+  ALL_CATEGORIES.forEach((cat) => {
+    map[cat] = { amount: 0, percentage: 0, count: 0 };
+  });
+  return map;
+}
+
 export function calculateSpendSummary(records: SpendRecord[]): SpendSummary {
   if (!records || records.length === 0) {
     return {
@@ -19,15 +44,7 @@ export function calculateSpendSummary(records: SpendRecord[]): SpendSummary {
       recurringSpendRon: 0,
       variableSpendRon: 0,
       recurringPercentage: 0,
-      categoryBreakdown: {
-        Telecom: { amount: 0, percentage: 0, count: 0 },
-        Software: { amount: 0, percentage: 0, count: 0 },
-        Curierat: { amount: 0, percentage: 0, count: 0 },
-        Consumabile: { amount: 0, percentage: 0, count: 0 },
-        Energie: { amount: 0, percentage: 0, count: 0 },
-        Servicii: { amount: 0, percentage: 0, count: 0 },
-        Altele: { amount: 0, percentage: 0, count: 0 },
-      },
+      categoryBreakdown: createEmptyCategoryBreakdown(),
       supplierBreakdown: [],
       monthlyTrend: [],
     };
@@ -35,15 +52,10 @@ export function calculateSpendSummary(records: SpendRecord[]): SpendSummary {
 
   // Calculate monthly average per supplier and annualize
   const supplierMonthlyMap: Record<string, { name: string; category: SpendCategory; monthlyTotal: number; count: number }> = {};
-  const categoryTotals: Record<SpendCategory, { amount: number; count: number }> = {
-    Telecom: { amount: 0, count: 0 },
-    Software: { amount: 0, count: 0 },
-    Curierat: { amount: 0, count: 0 },
-    Consumabile: { amount: 0, count: 0 },
-    Energie: { amount: 0, count: 0 },
-    Servicii: { amount: 0, count: 0 },
-    Altele: { amount: 0, count: 0 },
-  };
+  const categoryTotals = {} as Record<SpendCategory, { amount: number; count: number }>;
+  ALL_CATEGORIES.forEach((cat) => {
+    categoryTotals[cat] = { amount: 0, count: 0 };
+  });
 
   const monthlyTotals: Record<string, number> = {};
   let totalRecurringMonthly = 0;

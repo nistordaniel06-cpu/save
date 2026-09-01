@@ -232,7 +232,7 @@ export function ProposalAnalyzerModal({ isOpen, onClose }: ProposalAnalyzerModal
                   step="0.01"
                   value={unitPrice}
                   onChange={(e) => setUnitPrice(e.target.value ? Number(e.target.value) : '')}
-                  placeholder={`ex: ${ROMANIAN_MARKET_BENCHMARKS[category].p50MedianPrice}`}
+                  placeholder={`ex: ${ROMANIAN_MARKET_BENCHMARKS[category]?.p50MedianPrice || 50}`}
                   className="w-full text-xs p-2.5 rounded-lg border border-zinc-300 focus:outline-emerald-600"
                 />
               </div>
