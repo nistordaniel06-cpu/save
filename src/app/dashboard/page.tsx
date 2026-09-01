@@ -20,7 +20,8 @@ import {
   ArrowRight,
   Upload,
   Clock,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -118,6 +119,91 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Compact Compania Ta Data Card */}
+      <Card className="p-5 border-zinc-200 shadow-xs bg-white">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-zinc-900 text-white font-black text-base flex items-center justify-center shrink-0 shadow-sm">
+              {currentOrg.name ? currentOrg.name.slice(0, 2).toUpperCase() : 'CO'}
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-black text-sm text-zinc-900">{currentOrg.name || 'Compania Ta'}</span>
+                <span className="font-mono text-xs font-semibold text-zinc-500">{currentOrg.cui || 'CUI Neconfigurat'}</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-xs text-zinc-500 flex-wrap">
+                {currentOrg.verificationStatus === 'verified' ? (
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Date fiscale verificate
+                  </span>
+                ) : (
+                  <span className="text-amber-700 font-medium flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> Date fiscale neverificate
+                  </span>
+                )}
+                <span>•</span>
+                {currentOrg.efacturaConnection?.status === 'connected' || currentOrg.roEfacturaStatus ? (
+                  <span className="text-purple-700 font-semibold flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5" /> RO e-Factura conectată
+                  </span>
+                ) : (
+                  <span className="text-zinc-400 flex items-center gap-1">
+                    RO e-Factura nu este conectată
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6 self-end sm:self-center">
+            <div className="hidden md:flex items-center gap-6 text-xs text-zinc-600 font-mono">
+              <div>
+                <span className="text-[10px] text-zinc-400 block uppercase">Ultima sincronizare</span>
+                <span className="font-semibold text-zinc-800">
+                  {currentOrg.efacturaConnection?.lastSyncAt
+                    ? new Date(currentOrg.efacturaConnection.lastSyncAt).toLocaleDateString('ro-RO')
+                    : currentOrg.companyLookupCheckedAt
+                    ? new Date(currentOrg.companyLookupCheckedAt).toLocaleDateString('ro-RO')
+                    : isDemo ? 'Azi, 10:42' : 'Niciodată'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-zinc-400 block uppercase">Facturi sincronizate</span>
+                <span className="font-bold text-zinc-900">
+                  {currentOrg.efacturaConnection?.invoicesCount || (isDemo ? 184 : documents.length)}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-zinc-400 block uppercase">Furnizori corelați</span>
+                <span className="font-bold text-zinc-900">
+                  {currentOrg.efacturaConnection?.suppliersCount || (isDemo ? 27 : 0)}
+                </span>
+              </div>
+            </div>
+
+            <Link href="/settings/company">
+              <Button
+                variant={currentOrg.efacturaConnection?.status === 'connected' || currentOrg.roEfacturaStatus ? 'outline' : 'purple'}
+                size="sm"
+                className="font-bold text-xs gap-1.5 shrink-0"
+              >
+                {currentOrg.efacturaConnection?.status === 'connected' || currentOrg.roEfacturaStatus ? (
+                  <>
+                    <span>Vezi datele companiei</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Conectează RO e-Factura</span>
+                  </>
+                )}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </Card>
 
       {/* Top 6 KPI Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">

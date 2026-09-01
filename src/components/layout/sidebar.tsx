@@ -90,6 +90,13 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
       icon: ArrowRightLeft,
       badge: undefined,
     },
+    {
+      label: 'Profil & RO e-Factura',
+      href: '/settings/company',
+      icon: Building2,
+      badge: currentOrg.roEfacturaStatus || currentOrg.efacturaConnection?.status === 'connected' ? 'e-Factura' : undefined,
+      badgeVariant: 'purple' as const,
+    },
   ];
 
   const sidebarContent = (

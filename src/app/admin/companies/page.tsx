@@ -26,7 +26,8 @@ import {
   Ban, 
   X,
   Users,
-  Check
+  Check,
+  Zap
 } from 'lucide-react';
 import { Organization, VerificationStatus, SpendCategory } from '@/lib/types';
 import { supabase } from '@/lib/supabase/client';
@@ -341,8 +342,8 @@ export default function AdminCompaniesPage() {
               <tr>
                 <th className="py-3.5 px-4">Companie</th>
                 <th className="py-3.5 px-4">CUI / CIF</th>
-                <th className="py-3.5 px-4">Industrie & Dimensiune</th>
                 <th className="py-3.5 px-4">Status Verificare</th>
+                <th className="py-3.5 px-4">RO e-Factura</th>
                 <th className="py-3.5 px-4">Documente</th>
                 <th className="py-3.5 px-4">OPEX Lunar</th>
                 <th className="py-3.5 px-4 text-right">Acțiuni</th>
@@ -359,6 +360,7 @@ export default function AdminCompaniesPage() {
                 filteredOrgs.map((org) => {
                   const orgDocs = documents.filter((d) => d.organizationId === org.id);
                   const verStatus = org.verificationStatus || 'unverified';
+                  const isEfactura = org.efacturaConnection?.status === 'connected' || Boolean(org.roEfacturaStatus);
 
                   return (
                     <tr key={org.id} className="hover:bg-zinc-50/80 transition-colors">
@@ -380,11 +382,6 @@ export default function AdminCompaniesPage() {
                         {org.cui || <span className="text-zinc-400 italic">Lipsă</span>}
                       </td>
 
-                      <td className="py-3.5 px-4 text-zinc-600">
-                        <div>{org.industry}</div>
-                        <span className="text-[10px] text-zinc-400">{org.employeeRange}</span>
-                      </td>
-
                       <td className="py-3.5 px-4">
                         <Badge 
                           variant={
@@ -399,6 +396,12 @@ export default function AdminCompaniesPage() {
                            verStatus === 'suspended' ? 'Suspendat' : 
                            verStatus === 'rejected' ? 'Respins' : 
                            verStatus === 'pending' ? 'În Așteptare' : 'Neverificat'}
+                        </Badge>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <Badge variant={isEfactura ? 'purple' : 'default'} size="sm">
+                          {isEfactura ? '✓ e-Factura Activ' : 'Neconectat'}
                         </Badge>
                       </td>
 
@@ -510,8 +513,8 @@ export default function AdminCompaniesPage() {
                 </div>
                 <div>
                   <span className="text-[10px] text-zinc-400 block">RO e-Factura:</span>
-                  <span className="font-medium text-emerald-700">
-                    {selectedOrg.roEfacturaStatus ? 'Înregistrat' : 'Nesincronizat'}
+                  <span className="font-medium text-purple-700">
+                    {selectedOrg.efacturaConnection?.status === 'connected' || selectedOrg.roEfacturaStatus ? '✓ Conectat SPV' : 'Neconectat'}
                   </span>
                 </div>
                 <div>
@@ -530,6 +533,37 @@ export default function AdminCompaniesPage() {
                   <span className="text-zinc-800">{selectedOrg.address}</span>
                 </div>
               )}
+            </div>
+
+            {/* RO e-Factura Integration Status Box */}
+            <div className="p-4 bg-purple-50/50 rounded-xl border border-purple-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-purple-950 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-purple-600" />
+                  Status Integrare RO e-Factura
+                </span>
+                <Badge variant={selectedOrg.efacturaConnection?.status === 'connected' || selectedOrg.roEfacturaStatus ? 'purple' : 'default'} size="sm">
+                  {selectedOrg.efacturaConnection?.status === 'connected' || selectedOrg.roEfacturaStatus ? 'Activ' : 'Neconfigurat'}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs text-zinc-600">
+                <div>
+                  <span className="text-[10px] text-zinc-400 block">CUI Conectat:</span>
+                  <span className="font-mono font-bold text-zinc-900">{selectedOrg.cui || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-400 block">Facturi Corelate:</span>
+                  <span className="font-mono font-bold text-purple-700">
+                    {selectedOrg.efacturaConnection?.invoicesCount || documents.filter(d => d.organizationId === selectedOrg.id).length}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-400 block">Ultima Sincronizare:</span>
+                  <span className="font-mono font-medium text-zinc-800">
+                    {selectedOrg.efacturaConnection?.lastSyncAt ? new Date(selectedOrg.efacturaConnection.lastSyncAt).toLocaleDateString('ro-RO') : 'N/A'}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Quick Metrics */}

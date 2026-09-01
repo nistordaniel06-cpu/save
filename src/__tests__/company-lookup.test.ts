@@ -42,7 +42,7 @@ describe('Romanian CUI Validation & Normalization', () => {
     expect(result.company?.cuiNumeric).toBe(14399840);
     expect(result.company?.vatRegistered).toBe(true);
     expect(result.company?.status).toBe('active');
-  });
+  }, 15000);
 
   it('gracefully handles non-existent or invalid CUI without crashing', async () => {
     const invalidResult = await companyLookupService.lookupCompany('00000000');

@@ -41,6 +41,79 @@ export interface Profile {
   createdAt: string;
 }
 
+export type FieldSource = 
+  | 'anaf_public' 
+  | 'efactura' 
+  | 'user' 
+  | 'admin' 
+  | 'document_extraction' 
+  | 'other_verified_provider';
+
+export type CompanyFieldSourceMap = Record<string, { source: FieldSource; updatedAt: string }>;
+
+export interface CompanyProfileSnapshot {
+  organizationId: string;
+  legalName: string;
+  cui: string;
+  cuiNumeric: number;
+  vatId?: string;
+  vatRegistered: boolean;
+  vatPayer: boolean;
+  active: boolean;
+  statusDetails?: string;
+  efacturaRegistered: boolean;
+  address: string;
+  city?: string;
+  county?: string;
+  postalCode?: string;
+  registrationNumber?: string;
+  caenCode?: string;
+  caenDescription?: string;
+  revenue?: number;
+  profit?: number;
+  employees?: number;
+  financialYear?: number;
+  source: string;
+  checkedAt: string;
+  fieldSources?: CompanyFieldSourceMap;
+}
+
+export type EfacturaConnectionStatus = 
+  | 'not_connected' 
+  | 'connecting' 
+  | 'connected' 
+  | 'needs_reauthorization' 
+  | 'error';
+
+export interface EfacturaConnection {
+  id: string;
+  organizationId: string;
+  cui: string;
+  status: EfacturaConnectionStatus;
+  connectedAt?: string;
+  lastSyncAt?: string;
+  lastSuccessfulSyncAt?: string;
+  invoicesCount: number;
+  suppliersCount: number;
+  syncErrorsCount: number;
+  lastError?: string;
+  autoSyncEnabled: boolean;
+}
+
+export interface EfacturaSyncRun {
+  id: string;
+  organizationId: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt?: string;
+  invoicesReceived: number;
+  invoicesSent: number;
+  invoicesImported: number;
+  duplicatesSkipped: number;
+  errorsCount: number;
+  errorDetails?: string;
+}
+
 export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected' | 'suspended';
 
 export interface Organization {
@@ -68,6 +141,9 @@ export interface Organization {
   postalCode?: string;
   vatRegistered?: boolean;
   roEfacturaStatus?: string;
+  efacturaConnection?: EfacturaConnection;
+  profileSnapshot?: CompanyProfileSnapshot;
+  fieldSources?: CompanyFieldSourceMap;
 }
 
 export type PoolInterestStatus = 'interested' | 'matched' | 'invited' | 'joined' | 'closed';
@@ -131,6 +207,10 @@ export interface DocumentExtraction {
   documentId: string;
   organizationId: string;
   supplier: string;
+  supplierName?: string;
+  supplierCui?: string;
+  customerName?: string;
+  customerCui?: string;
   documentType: DocumentType;
   category: SpendCategory;
   invoiceNumber?: string;

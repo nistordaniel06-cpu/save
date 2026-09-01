@@ -34,10 +34,15 @@ import {
   MarketplaceSupplier,
   SupplierBid,
   ClientOffer,
-  PoolInterest
+  PoolInterest,
+  FieldSource,
+  CompanyProfileSnapshot,
+  EfacturaConnection,
+  Supplier
 } from './types';
 import { detectVerifiedDemands } from './demand/demand-detector';
 import { calculateContractTimeline } from './analytics/contract-calculator';
+import { efacturaSyncEngine } from './efactura/sync-engine';
 import { supabase } from './supabase/client';
 import { DEMO_ORG, DEMO_USER } from './demo-data';
 
@@ -46,6 +51,7 @@ interface SaveContextType {
   currentOrg: Organization;
   currentUser: Profile;
   organizations: Organization[];
+  suppliers: Supplier[];
   documents: DocumentItem[];
   contracts: ContractItem[];
   opportunities: SavingsOpportunity[];
@@ -97,6 +103,11 @@ interface SaveContextType {
   createDemandPool: (poolData: Omit<DemandPool, 'id' | 'createdAt' | 'updatedAt' | 'totalCompanies' | 'totalVolume' | 'totalCurrentAnnualSpend'>) => Promise<DemandPool>;
   selectWinningBidAndGenerateOffers: (bidId: string) => Promise<void>;
   addContract: (contract: Omit<ContractItem, 'id' | 'organizationId' | 'createdAt'>) => Promise<ContractItem>;
+  refreshCompanyProfileFromAnaf: (orgId?: string) => Promise<void>;
+  updateCompanyField: (fieldName: string, value: any, source: FieldSource) => Promise<void>;
+  connectEfactura: (cui?: string) => Promise<void>;
+  disconnectEfactura: () => Promise<void>;
+  syncEfacturaInvoices: (messages?: any[]) => Promise<any>;
   resetToDemo: () => void;
   signOut: () => Promise<void>;
   refreshRealData: () => Promise<void>;
@@ -572,6 +583,194 @@ export function SaveProvider({
     });
 
     return newInterest;
+  };
+
+  const refreshCompanyProfileFromAnaf = async (orgId?: string) => {
+    const targetOrg = orgId 
+      ? state.organizations.find(o => o.id === orgId) || state.currentOrg 
+      : state.currentOrg;
+
+    if (!targetOrg.cui) {
+      throw new Error('Compania nu are un CUI configurat pentru verificare.');
+    }
+
+    try {
+      const res = await fetch('/api/company-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cui: targetOrg.cui }),
+      });
+
+      const data = await res.json();
+      if (!data.success || !data.company) {
+        throw new Error(data.error?.userMessage || 'Nu s-au putut prelua datele din registrul ANAF.');
+      }
+
+      const c = data.company;
+      const now = new Date().toISOString();
+
+      const snapshot: CompanyProfileSnapshot = {
+        organizationId: targetOrg.id,
+        legalName: c.name,
+        cui: c.cuiFormatted,
+        cuiNumeric: c.cui,
+        vatId: c.vatRegistered ? c.cuiFormatted : undefined,
+        vatRegistered: c.vatRegistered,
+        vatPayer: c.vatRegistered,
+        active: c.status === 'active',
+        statusDetails: c.statusDetails,
+        efacturaRegistered: Boolean(c.roEfacturaRegistered),
+        address: c.address || targetOrg.address || '',
+        city: c.city || targetOrg.city,
+        county: c.county || targetOrg.county,
+        postalCode: c.postalCode || targetOrg.postalCode,
+        registrationNumber: c.registrationNumber || targetOrg.registrationNumber,
+        caenCode: c.caenCode,
+        caenDescription: c.caenDescription,
+        source: c.source || 'ANAF Public Registry',
+        checkedAt: now,
+        fieldSources: {
+          ...(targetOrg.profileSnapshot?.fieldSources || {}),
+          legalName: { source: 'anaf_public', updatedAt: now },
+          cui: { source: 'anaf_public', updatedAt: now },
+          address: { source: 'anaf_public', updatedAt: now },
+          vatRegistered: { source: 'anaf_public', updatedAt: now },
+          caenCode: { source: 'anaf_public', updatedAt: now },
+        }
+      };
+
+      await updateOrganization(targetOrg.id, {
+        companyLookupSource: c.source,
+        companyLookupCheckedAt: now,
+        companyLookupStatus: c.status,
+        address: c.address || targetOrg.address,
+        city: c.city || targetOrg.city,
+        county: c.county || targetOrg.county,
+        postalCode: c.postalCode || targetOrg.postalCode,
+        vatRegistered: c.vatRegistered,
+        roEfacturaStatus: c.roEfacturaRegistered ? 'inregistrat' : undefined,
+        registrationNumber: c.registrationNumber || targetOrg.registrationNumber,
+        profileSnapshot: snapshot,
+        fieldSources: {
+          ...(targetOrg.fieldSources || {}),
+          name: { source: 'anaf_public', updatedAt: now },
+          cui: { source: 'anaf_public', updatedAt: now },
+          address: { source: 'anaf_public', updatedAt: now },
+          vatRegistered: { source: 'anaf_public', updatedAt: now },
+        }
+      });
+    } catch (err: any) {
+      console.error('Error refreshing company profile from ANAF:', err);
+      throw err;
+    }
+  };
+
+  const updateCompanyField = async (fieldName: string, value: any, source: FieldSource) => {
+    const now = new Date().toISOString();
+    const updatedFieldSources = {
+      ...(state.currentOrg.fieldSources || {}),
+      [fieldName]: { source, updatedAt: now },
+    };
+
+    await updateOrganization(state.currentOrg.id, {
+      [fieldName]: value,
+      fieldSources: updatedFieldSources,
+    });
+  };
+
+  const connectEfactura = async (customCui?: string) => {
+    const targetCui = customCui || state.currentOrg.cui || '';
+    const now = new Date().toISOString();
+
+    const connection: EfacturaConnection = {
+      id: `efact_conn_${state.currentOrg.id}`,
+      organizationId: state.currentOrg.id,
+      cui: targetCui,
+      status: 'connected',
+      connectedAt: now,
+      lastSyncAt: now,
+      lastSuccessfulSyncAt: now,
+      invoicesCount: state.documents.filter(d => d.uploadedByName?.includes('e-Factura')).length,
+      suppliersCount: state.suppliers.length,
+      syncErrorsCount: 0,
+      autoSyncEnabled: true,
+    };
+
+    await updateOrganization(state.currentOrg.id, {
+      efacturaConnection: connection,
+      roEfacturaStatus: 'inregistrat',
+    });
+  };
+
+  const disconnectEfactura = async () => {
+    if (!state.currentOrg.efacturaConnection) return;
+    const connection: EfacturaConnection = {
+      ...state.currentOrg.efacturaConnection,
+      status: 'not_connected',
+    };
+
+    await updateOrganization(state.currentOrg.id, {
+      efacturaConnection: connection,
+    });
+  };
+
+  const syncEfacturaInvoices = async (messages?: any[]) => {
+    const rawMessages = messages || [];
+    const { result, newDocuments, newSpendRecords, updatedSuppliers } = efacturaSyncEngine.processMessages(
+      rawMessages,
+      state.currentOrg,
+      state.documents,
+      state.suppliers,
+      state.spendRecords
+    );
+
+    const now = new Date().toISOString();
+    const currentConn = state.currentOrg.efacturaConnection || {
+      id: `efact_${state.currentOrg.id}`,
+      organizationId: state.currentOrg.id,
+      cui: state.currentOrg.cui || '',
+      status: 'connected' as const,
+      connectedAt: now,
+      invoicesCount: 0,
+      suppliersCount: 0,
+      syncErrorsCount: 0,
+      autoSyncEnabled: true,
+    };
+
+    const updatedConn: EfacturaConnection = {
+      ...currentConn,
+      lastSyncAt: now,
+      lastSuccessfulSyncAt: result.success ? now : currentConn.lastSuccessfulSyncAt,
+      invoicesCount: (currentConn.invoicesCount || 0) + result.importedInvoices.length,
+      suppliersCount: updatedSuppliers.length,
+      syncErrorsCount: (currentConn.syncErrorsCount || 0) + result.errors.length,
+      lastError: result.errors[0],
+    };
+
+    updateState((prev) => {
+      const next = {
+        ...prev,
+        documents: [...newDocuments, ...prev.documents],
+        spendRecords: [...newSpendRecords, ...prev.spendRecords],
+        suppliers: updatedSuppliers,
+        currentOrg: {
+          ...prev.currentOrg,
+          efacturaConnection: updatedConn,
+        },
+        organizations: prev.organizations.map((o) => 
+          o.id === prev.currentOrg.id ? { ...o, efacturaConnection: updatedConn } : o
+        ),
+      };
+
+      if (isDemoMode) {
+        saveDemoState(next);
+      } else {
+        saveRealState(next);
+      }
+      return next;
+    });
+
+    return result;
   };
 
   const uploadDocument = async (file: { 
@@ -1586,6 +1785,7 @@ export function SaveProvider({
         currentOrg: state.currentOrg,
         currentUser: state.currentUser,
         organizations: state.organizations,
+        suppliers: state.suppliers || [],
         documents: orgFilteredDocuments,
         contracts: orgFilteredContracts,
         opportunities: orgFilteredOpportunities,
@@ -1623,6 +1823,11 @@ export function SaveProvider({
         createDemandPool,
         selectWinningBidAndGenerateOffers,
         addContract,
+        refreshCompanyProfileFromAnaf,
+        updateCompanyField,
+        connectEfactura,
+        disconnectEfactura,
+        syncEfacturaInvoices,
         resetToDemo,
         signOut,
         refreshRealData,
