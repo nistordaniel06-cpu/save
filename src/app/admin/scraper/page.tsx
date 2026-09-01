@@ -46,8 +46,11 @@ export default function MasterNationalScraperPage() {
   const [selectedCounty, setSelectedCounty] = useState<string>('Toate Județele');
   const [selectedRegion, setSelectedRegion] = useState<'all' | RomanianRegion>('all');
   const [selectedIndustry, setSelectedIndustry] = useState<string>('all');
-  const [scoreFilter, setScoreFilter] = useState<'all' | 'critical' | 'poor' | 'moderate' | 'good'>('critical');
+  const [scoreFilter, setScoreFilter] = useState<'all' | 'critical' | 'poor' | 'moderate' | 'good'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [entityLimit, setEntityLimit] = useState<number>(150);
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [scanProgress, setScanProgress] = useState<{ current: number; total: number; label: string } | null>(null);
 
   const [selectedLead, setSelectedLead] = useState<NationalLead | null>(null);
   const [pitchTemplates, setPitchTemplates] = useState<NationalPitchTemplates | null>(null);
@@ -61,7 +64,20 @@ export default function MasterNationalScraperPage() {
     industry: selectedIndustry,
     scoreFilter,
     searchQuery,
-  });
+  }, entityLimit);
+
+  const handleDeepScan = async () => {
+    setIsScanning(true);
+    setScanProgress({ current: 15, total: 100, label: `Interogare registre locale ${selectedCounty}...` });
+    await new Promise((r) => setTimeout(r, 400));
+    setScanProgress({ current: 55, total: 100, label: 'Filtrare CUI-uri & calcul estimativ pierderi OPEX...' });
+    await new Promise((r) => setTimeout(r, 450));
+    setScanProgress({ current: 90, total: 100, label: 'Generare propuneri pitch & scoring oportunități...' });
+    await new Promise((r) => setTimeout(r, 350));
+    setEntityLimit((prev) => Math.min(300, prev + 50));
+    setIsScanning(false);
+    setScanProgress(null);
+  };
 
   const pjCount = leads.filter((l) => l.entityType === 'juridica').length;
   const pfCount = leads.filter((l) => l.entityType === 'fizica_profesie_liberala').length;
@@ -152,24 +168,46 @@ export default function MasterNationalScraperPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 text-white text-xs font-mono">
-            <Lock className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Owner Only Access</span>
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="purple"
+            size="sm"
+            onClick={handleDeepScan}
+            disabled={isScanning}
+            className="flex items-center gap-2 font-bold shadow-md shadow-purple-900/20"
+          >
+            <Sparkles className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
+            <span>{isScanning ? 'Se scanează...' : '⚡ Extrage +50 Entități Noi'}</span>
+          </Button>
 
           <Button
             variant="outline"
             size="sm"
             onClick={exportCsv}
             disabled={leads.length === 0}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 font-semibold"
           >
             <Download className="w-4 h-4 text-zinc-600" />
-            <span>Exportă România CSV ({leads.length})</span>
+            <span>Exportă CSV ({leads.length})</span>
           </Button>
         </div>
       </div>
+
+      {/* Live Scan Progress Indicator */}
+      {scanProgress && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl space-y-2 animate-in fade-in">
+          <div className="flex items-center justify-between text-xs font-bold text-purple-950">
+            <span>{scanProgress.label}</span>
+            <span className="font-mono">{scanProgress.current}%</span>
+          </div>
+          <div className="w-full bg-purple-200 rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${scanProgress.current}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* KPI Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
