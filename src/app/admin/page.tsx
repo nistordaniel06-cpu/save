@@ -224,10 +224,15 @@ export default function AdminPage() {
                             <Button
                               size="sm"
                               variant="emerald"
-                              onClick={() => verifyOptimizationSavings(req.id, 3900)}
+                              onClick={() => {
+                                const savings = req.achievedAnnualSavings > 0 
+                                  ? req.achievedAnnualSavings 
+                                  : (req.counterOfferDetails?.estimatedSavings || Math.round(req.initialAnnualCost * 0.2));
+                                verifyOptimizationSavings(req.id, savings);
+                              }}
                               className="h-7 text-xs px-2"
                             >
-                              Confirmă 3.900 lei
+                              Validează Economie ({req.achievedAnnualSavings > 0 ? `${req.achievedAnnualSavings.toLocaleString('ro-RO')} lei` : 'Calculat'})
                             </Button>
                           )}
                         </div>

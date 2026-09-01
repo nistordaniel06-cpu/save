@@ -45,7 +45,7 @@ interface SaveContextType {
   switchOrganization: (orgId: string) => void;
   createOrganization: (orgData: Partial<Organization>) => Promise<Organization>;
   uploadDocument: (file: { name: string; type: string; size: number; textSnippet?: string; rawFile?: File | Blob }) => Promise<DocumentItem>;
-  updateExtraction: (documentId: string, updatedExtraction: Partial<DocumentExtraction>) => void;
+  updateExtraction: (documentId: string, updatedExtraction: Partial<DocumentExtraction>) => Promise<void>;
   deleteDocument: (documentId: string) => Promise<void>;
   createOptimizationRequest: (data: {
     opportunityId?: string;
@@ -451,13 +451,41 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
       documents: [newDoc, ...prev.documents],
     }));
 
-    // 3. Process AI Extraction pipeline
-    const { extraction } = await processDocumentExtraction({
-      fileName: file.name,
-      mimeType: file.type,
-      fileSizeBytes: file.size,
-      textContent: file.textSnippet,
-    });
+    // 3. Process AI Extraction pipeline via SERVER-SIDE API boundary
+    let extraction: any;
+    try {
+      const formData = new FormData();
+      if (file.rawFile) {
+        formData.append('file', file.rawFile);
+      } else {
+        formData.append('file', new Blob([file.textSnippet || ''], { type: file.type || 'text/plain' }), file.name);
+      }
+      formData.append('isDemo', String(state.currentOrg.isDemo));
+
+      const res = await fetch('/api/extract', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.extraction) {
+        extraction = data.extraction;
+      } else {
+        throw new Error(data.error || 'Eroare la procesarea server-side');
+      }
+    } catch (e: any) {
+      console.warn('Server-side extraction error, falling back to manual review required:', e);
+      extraction = {
+        supplier: file.name.split('_')[0] || 'Furnizor de identificat',
+        documentType: file.name.toLowerCase().includes('contract') ? 'supplier_contract' : 'invoice',
+        category: 'Servicii' as SpendCategory,
+        invoiceTotal: 0,
+        currency: 'RON',
+        confidence: 10,
+        needsReview: true,
+        reviewNotes: 'Documentul nu a putut fi analizat automat și necesită verificare.',
+        automaticRenewal: false,
+      };
+    }
 
     const fullExtraction: DocumentExtraction = {
       id: `ext_${Date.now()}`,
@@ -489,7 +517,28 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
 
     const finalStatus = extraction.needsReview ? 'requires_review' : 'extracted';
 
-    // 4. Update in Supabase if real org
+    // Spend record setup
+    let newSpendRecord: SpendRecord | undefined;
+    if (extraction.documentType === 'invoice' || extraction.documentType === 'subscription_agreement') {
+      const spendId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `sp_${Date.now()}`;
+      newSpendRecord = {
+        id: spendId,
+        organizationId: state.currentOrg.id,
+        supplierId: `sup_${Date.now()}`,
+        supplierName: extraction.supplier,
+        documentId: docId,
+        category: extraction.category as SpendCategory,
+        description: `Factură ${file.name}`,
+        amount: extraction.invoiceTotal || 0,
+        currency: extraction.currency || 'RON',
+        spendDate: extraction.invoiceDate || new Date().toISOString().split('T')[0],
+        isRecurring: true,
+        periodType: 'monthly',
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    // 4. Update in Supabase if real org with COMPLETE schema persistence
     if (isRealOrg) {
       try {
         await supabase.from('documents').update({
@@ -502,13 +551,39 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
           supplier_name: extraction.supplier,
           document_type: extraction.documentType,
           category: extraction.category,
-          invoice_number: extraction.invoiceNumber,
-          invoice_date: extraction.invoiceDate,
-          invoice_total: extraction.invoiceTotal,
-          currency: extraction.currency,
-          confidence: extraction.confidence,
-          needs_review: extraction.needsReview,
+          invoice_number: extraction.invoiceNumber || null,
+          invoice_date: extraction.invoiceDate || null,
+          due_date: extraction.dueDate || null,
+          invoice_total: extraction.invoiceTotal || 0,
+          currency: extraction.currency || 'RON',
+          billing_period: extraction.billingPeriod || null,
+          contract_start: extraction.contractStart || null,
+          contract_end: extraction.contractEnd || null,
+          notice_period_days: extraction.noticePeriodDays || null,
+          unit_price: extraction.unitPrice || null,
+          quantity: extraction.quantity || null,
+          automatic_renewal: extraction.automaticRenewal || false,
+          price_indexation: extraction.priceIndexation || null,
+          confidence: extraction.confidence || 0,
+          needs_review: extraction.needsReview || false,
+          review_notes: extraction.reviewNotes || null,
+          raw_payload: extraction.rawPayload || null,
         });
+
+        if (newSpendRecord && newSpendRecord.amount > 0) {
+          await supabase.from('spend_records').insert({
+            id: newSpendRecord.id,
+            organization_id: state.currentOrg.id,
+            supplier_id: newSpendRecord.supplierId,
+            category: newSpendRecord.category,
+            description: newSpendRecord.description,
+            amount: newSpendRecord.amount,
+            currency: newSpendRecord.currency,
+            spend_date: newSpendRecord.spendDate,
+            is_recurring: newSpendRecord.isRecurring,
+            period_type: newSpendRecord.periodType,
+          });
+        }
       } catch (e) {
         console.warn('Supabase extraction update fallback:', e);
       }
@@ -532,25 +607,7 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date().toISOString(),
       };
 
-      let updatedSpend = prev.spendRecords;
-      if (extraction.documentType === 'invoice' || extraction.documentType === 'subscription_agreement') {
-        const newSpendRecord: SpendRecord = {
-          id: `sp_${Date.now()}`,
-          organizationId: prev.currentOrg.id,
-          supplierId: `sup_${Date.now()}`,
-          supplierName: extraction.supplier,
-          documentId: docId,
-          category: extraction.category as SpendCategory,
-          description: `Factură ${file.name}`,
-          amount: extraction.invoiceTotal,
-          currency: extraction.currency,
-          spendDate: extraction.invoiceDate || new Date().toISOString().split('T')[0],
-          isRecurring: true,
-          periodType: 'monthly',
-          createdAt: new Date().toISOString(),
-        };
-        updatedSpend = [newSpendRecord, ...prev.spendRecords];
-      }
+      const updatedSpend = newSpendRecord ? [newSpendRecord, ...prev.spendRecords] : prev.spendRecords;
 
       return {
         ...prev,
@@ -568,7 +625,41 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
-  const updateExtraction = (documentId: string, updatedExtraction: Partial<DocumentExtraction>) => {
+  const updateExtraction = async (documentId: string, updatedExtraction: Partial<DocumentExtraction>) => {
+    const isRealOrg = !state.currentOrg.isDemo;
+    const reviewedAt = new Date().toISOString();
+    const reviewedBy = state.currentUser.fullName;
+
+    if (isRealOrg) {
+      try {
+        await supabase.from('documents').update({
+          status: 'verified',
+        }).eq('id', documentId);
+
+        await supabase.from('document_extractions').update({
+          supplier_name: updatedExtraction.supplier,
+          document_type: updatedExtraction.documentType,
+          category: updatedExtraction.category,
+          invoice_number: updatedExtraction.invoiceNumber,
+          invoice_date: updatedExtraction.invoiceDate,
+          due_date: updatedExtraction.dueDate,
+          invoice_total: updatedExtraction.invoiceTotal,
+          currency: updatedExtraction.currency,
+          unit_price: updatedExtraction.unitPrice,
+          quantity: updatedExtraction.quantity,
+          contract_start: updatedExtraction.contractStart,
+          contract_end: updatedExtraction.contractEnd,
+          notice_period_days: updatedExtraction.noticePeriodDays,
+          automatic_renewal: updatedExtraction.automaticRenewal,
+          needs_review: false,
+          reviewed_by: reviewedBy,
+          reviewed_at: reviewedAt,
+        }).eq('document_id', documentId);
+      } catch (e) {
+        console.warn('Supabase review update notice:', e);
+      }
+    }
+
     updateState((prev) => {
       const updatedDocs = prev.documents.map((d) => {
         if (d.id === documentId && d.extraction) {
@@ -576,8 +667,8 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
             ...d.extraction,
             ...updatedExtraction,
             needsReview: false,
-            reviewedBy: prev.currentUser.id,
-            reviewedAt: new Date().toISOString(),
+            reviewedBy,
+            reviewedAt,
           };
           return {
             ...d,
@@ -719,8 +810,9 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
     const req = state.optimizationRequests.find((r) => r.id === requestId);
     if (!req) return;
 
+    const verifiedId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `ver_${Date.now()}`;
     const verifiedItem: VerifiedSavingsItem = {
-      id: `ver_${Date.now()}`,
+      id: verifiedId,
       organizationId: req.organizationId,
       optimizationRequestId: requestId,
       supplierId: req.supplierId,
@@ -732,6 +824,31 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
       verifiedBy: state.currentUser.fullName,
       verifiedAt: new Date().toISOString(),
     };
+
+    if (!state.currentOrg.isDemo) {
+      try {
+        await supabase.from('optimization_requests').update({
+          status: 'savings_verified',
+          achieved_annual_savings: amountRon,
+          operator_notes: `Economii anuale de ${amountRon.toLocaleString('ro-RO')} lei verificate și validate de SAVE Admin.`,
+        }).eq('id', requestId);
+
+        await supabase.from('verified_savings').insert({
+          id: verifiedId,
+          organization_id: req.organizationId,
+          optimization_request_id: requestId,
+          supplier_id: req.supplierId || null,
+          category: 'Telecom',
+          verified_amount_annual: amountRon,
+          currency: 'RON',
+          verification_method: 'contract_renegotiated_signed',
+          verified_by: state.currentUser.fullName,
+          verified_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('Supabase savings verification notice:', e);
+      }
+    }
 
     updateState((prev) => {
       const updatedReqs = prev.optimizationRequests.map((r) =>

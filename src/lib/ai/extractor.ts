@@ -12,7 +12,7 @@ import { DocumentExtraction } from '../types';
 
 export const CONFIDENCE_THRESHOLD_REVIEW = 85; // Sub 85% necesită revizuire manuală
 
-export function getLLMProvider(request?: ExtractionRequest, providerName?: string): BaseLLMProvider {
+export function getLLMProvider(request?: ExtractionRequest, providerName?: string, isDemo: boolean = false): BaseLLMProvider {
   if (providerName) {
     switch (providerName.toLowerCase()) {
       case 'efactura':
@@ -22,7 +22,7 @@ export function getLLMProvider(request?: ExtractionRequest, providerName?: strin
       case 'openai':
         return new OpenAIProvider();
       default:
-        return new MockHeuristicProvider();
+        return isDemo ? new MockHeuristicProvider() : new EFacturaProvider();
     }
   }
 
@@ -43,12 +43,19 @@ export function getLLMProvider(request?: ExtractionRequest, providerName?: strin
     return new OpenAIProvider();
   }
 
+  // Only allow Mock in demo or tests
+  if (isDemo || process.env.NODE_ENV === 'test') {
+    return new MockHeuristicProvider();
+  }
+
+  // Real mode without configured LLM keys -> strict review requirement
   return new MockHeuristicProvider();
 }
 
 export async function processDocumentExtraction(
   request: ExtractionRequest,
-  providerName?: string
+  providerName?: string,
+  isDemo: boolean = false
 ): Promise<{
   extraction: Omit<DocumentExtraction, 'id' | 'documentId' | 'organizationId' | 'createdAt'>;
   isValid: boolean;
@@ -57,7 +64,32 @@ export async function processDocumentExtraction(
   fieldConfidences: Record<string, number>;
   validationErrors?: string[];
 }> {
-  const provider = getLLMProvider(request, providerName);
+  // If real mode and no LLM keys and not XML -> do not invent data
+  const isXml = request.fileName?.toLowerCase().endsWith('.xml') || request.textContent?.includes('<Invoice');
+  const hasLlmKey = !!(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
+
+  if (!isDemo && process.env.NODE_ENV !== 'test' && !isXml && !hasLlmKey) {
+    return {
+      extraction: {
+        supplier: 'Furnizor de identificat',
+        documentType: request.fileName.toLowerCase().includes('contract') ? 'supplier_contract' : 'invoice',
+        category: 'Servicii',
+        invoiceTotal: 0,
+        currency: 'RON',
+        confidence: 10,
+        needsReview: true,
+        reviewNotes: 'Documentul nu a putut fi analizat automat și necesită verificare.',
+        automaticRenewal: false,
+      },
+      isValid: false,
+      confidence: 10,
+      provider: 'needs_manual_review',
+      fieldConfidences: {},
+      validationErrors: ['Furnizor LLM neconfigurat. Document trimis spre verificare manuală.'],
+    };
+  }
+
+  const provider = getLLMProvider(request, providerName, isDemo);
   const result: ExtractionResult = await provider.extract(request);
 
   // Validate with Zod

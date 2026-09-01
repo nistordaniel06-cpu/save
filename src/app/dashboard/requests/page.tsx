@@ -236,20 +236,14 @@ export default function RequestsPage() {
                     <span>Contractul nou este semnat doar la acordul tău expres</span>
                   </div>
 
-                  {selectedRequest.status !== 'savings_verified' && (
-                    <Button
-                      size="sm"
-                      variant="emerald"
-                      onClick={() => {
-                        const savings = selectedRequest.achievedAnnualSavings || 3900;
-                        verifyOptimizationSavings(selectedRequest.id, savings);
-                      }}
-                      className="gap-1.5 font-semibold"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Validează & Confirmă Economia</span>
-                    </Button>
-                  )}
+                  {selectedRequest.status === 'savings_verified' ? (
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Economie Confirmată & Validată de SAVE</span>
+                    </div>
+                  ) : selectedRequest.status === 'completed' ? (
+                    <span className="text-xs text-zinc-500 italic">În curs de auditare & validare finală de către specialistul SAVE</span>
+                  ) : null}
                 </CardFooter>
               </Card>
             </div>
