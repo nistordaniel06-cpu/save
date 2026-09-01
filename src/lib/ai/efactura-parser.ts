@@ -115,6 +115,15 @@ export function parseEFacturaXml(xmlContent: string): EFacturaParsedResult | nul
     return null;
   }
 
+  // Must contain essential UBL invoice components
+  if (
+    !xmlContent.includes('AccountingSupplierParty') && 
+    !xmlContent.includes('AccountingCustomerParty') && 
+    !xmlContent.includes('LegalMonetaryTotal')
+  ) {
+    return null;
+  }
+
   // Regex-based robust XML extractor (independent of DOMParser / Node-XML dependencies)
   const extractTag = (tag: string, source: string): string => {
     const match = source.match(new RegExp(`<(?:[a-zA-Z0-9_-]+:)?${tag}[^>]*>([\\s\\S]*?)<\\/(?:[a-zA-Z0-9_-]+:)?${tag}>`, 'i'));

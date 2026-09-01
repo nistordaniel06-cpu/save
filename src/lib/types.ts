@@ -114,6 +114,21 @@ export interface EfacturaSyncRun {
   errorDetails?: string;
 }
 
+export interface EfacturaImportBatch {
+  id: string;
+  organizationId: string;
+  source: 'spv_manual' | 'anaf_oauth_sync';
+  fileName?: string;
+  totalFiles: number;
+  totalProcessed: number;
+  importedCount: number;
+  duplicatesCount: number;
+  invalidCount: number;
+  mismatchedCuiCount: number;
+  uploadedBy: string;
+  createdAt: string;
+}
+
 export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected' | 'suspended';
 
 export interface Organization {

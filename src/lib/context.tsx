@@ -38,11 +38,13 @@ import {
   FieldSource,
   CompanyProfileSnapshot,
   EfacturaConnection,
-  Supplier
+  Supplier,
+  EfacturaImportBatch
 } from './types';
 import { detectVerifiedDemands } from './demand/demand-detector';
 import { calculateContractTimeline } from './analytics/contract-calculator';
 import { efacturaSyncEngine } from './efactura/sync-engine';
+import { spvBulkImporter, SpvRawFile, SpvBulkImportResult } from './efactura/spv-bulk-importer';
 import { supabase } from './supabase/client';
 import { DEMO_ORG, DEMO_USER } from './demo-data';
 
@@ -65,6 +67,7 @@ interface SaveContextType {
   supplierBids: SupplierBid[];
   clientOffers: ClientOffer[];
   poolInterests: PoolInterest[];
+  importBatches: EfacturaImportBatch[];
   auditLogs: AuditEvent[];
   isHydrated: boolean;
   isDemoMode: boolean;
@@ -108,6 +111,7 @@ interface SaveContextType {
   connectEfactura: (cui?: string) => Promise<void>;
   disconnectEfactura: () => Promise<void>;
   syncEfacturaInvoices: (messages?: any[]) => Promise<any>;
+  importSpvInvoices: (files: SpvRawFile[], uploaderName?: string) => Promise<SpvBulkImportResult>;
   resetToDemo: () => void;
   signOut: () => Promise<void>;
   refreshRealData: () => Promise<void>;
@@ -772,6 +776,172 @@ export function SaveProvider({
       }
       return next;
     });
+
+    return result;
+  };
+
+  const importSpvInvoices = async (
+    files: SpvRawFile[],
+    uploaderName?: string
+  ): Promise<SpvBulkImportResult> => {
+    if (!state.currentOrg || !state.currentOrg.id) {
+      throw new Error('Nu există o organizație activă selectată');
+    }
+
+    const currentUserName = uploaderName || state.currentUser?.fullName || 'Utilizator';
+
+    // Step 1: Extract XMLs from all files / ZIPs
+    const extractedXmls = await spvBulkImporter.extractXmlFiles(files);
+
+    if (extractedXmls.length === 0) {
+      throw new Error('Niciun document XML e-Factura valid nu a fost găsit în fișierele sau arhivele ZIP încărcate.');
+    }
+
+    // Step 2: Deterministically process all XMLs
+    const result = spvBulkImporter.processXmlInvoices(
+      extractedXmls,
+      state.currentOrg,
+      state.documents.filter((d) => d.organizationId === state.currentOrg.id),
+      state.suppliers.filter((s) => s.organizationId === state.currentOrg.id),
+      currentUserName
+    );
+
+    const now = new Date().toISOString();
+    const currentConn: EfacturaConnection = state.currentOrg.efacturaConnection || {
+      id: `conn_${state.currentOrg.id}`,
+      organizationId: state.currentOrg.id,
+      cui: state.currentOrg.cui || '',
+      status: 'connected',
+      connectedAt: now,
+      invoicesCount: 0,
+      suppliersCount: 0,
+      syncErrorsCount: 0,
+      autoSyncEnabled: false,
+    };
+
+    const updatedConn: EfacturaConnection = {
+      ...currentConn,
+      status: 'connected',
+      lastSyncAt: now,
+      lastSuccessfulSyncAt: result.importedCount > 0 ? now : currentConn.lastSuccessfulSyncAt,
+      invoicesCount: (currentConn.invoicesCount || 0) + result.importedCount,
+      suppliersCount: result.updatedSuppliers.length,
+      syncErrorsCount: (currentConn.syncErrorsCount || 0) + result.errors.length,
+    };
+
+    updateState((prev) => {
+      const supplierMap = new Map<string, Supplier>();
+      prev.suppliers.forEach((s) => supplierMap.set(s.id, s));
+      result.updatedSuppliers.forEach((s) => supplierMap.set(s.id, s));
+
+      const next = {
+        ...prev,
+        documents: [...result.importedDocuments, ...prev.documents],
+        spendRecords: [...result.newSpendRecords, ...prev.spendRecords],
+        suppliers: Array.from(supplierMap.values()),
+        importBatches: [result.batch, ...(prev.importBatches || [])],
+        currentOrg: {
+          ...prev.currentOrg,
+          efacturaConnection: updatedConn,
+        },
+        organizations: prev.organizations.map((o) =>
+          o.id === prev.currentOrg.id ? { ...o, efacturaConnection: updatedConn } : o
+        ),
+      };
+
+      if (isDemoMode) {
+        saveDemoState(next);
+      } else {
+        saveRealState(next);
+      }
+      return next;
+    });
+
+    // If real mode and authenticated, persist to Supabase if connected
+    if (!isDemoMode && supabaseUser) {
+      try {
+        if (result.importedDocuments.length > 0) {
+          await supabase.from('documents').upsert(
+            result.importedDocuments.map((d) => ({
+              id: d.id,
+              organization_id: d.organizationId,
+              supplier_id: d.supplierId,
+              file_name: d.fileName,
+              file_path: d.filePath,
+              file_size_bytes: d.fileSizeBytes,
+              mime_type: d.mimeType,
+              document_type: d.documentType,
+              status: d.status,
+              uploaded_by: supabaseUser.id,
+              uploaded_by_name: d.uploadedByName,
+              created_at: d.createdAt,
+            }))
+          );
+
+          await supabase.from('document_extractions').upsert(
+            result.importedDocuments.map((d) => ({
+              id: d.extraction?.id || `ext_${d.id}`,
+              document_id: d.id,
+              organization_id: d.organizationId,
+              supplier_name: d.extraction?.supplierName,
+              supplier_cui: d.extraction?.supplierCui,
+              customer_name: d.extraction?.customerName,
+              customer_cui: d.extraction?.customerCui,
+              document_type: d.extraction?.documentType,
+              category: d.extraction?.category,
+              invoice_number: d.extraction?.invoiceNumber,
+              invoice_date: d.extraction?.invoiceDate,
+              due_date: d.extraction?.dueDate,
+              invoice_total: d.extraction?.invoiceTotal,
+              currency: d.extraction?.currency,
+              confidence: d.extraction?.confidence,
+              needs_review: false,
+              created_at: d.extraction?.createdAt,
+            }))
+          );
+        }
+
+        if (result.newSpendRecords.length > 0) {
+          await supabase.from('spend_records').upsert(
+            result.newSpendRecords.map((s) => ({
+              id: s.id,
+              organization_id: s.organizationId,
+              supplier_id: s.supplierId,
+              supplier_name: s.supplierName,
+              document_id: s.documentId,
+              category: s.category,
+              description: s.description,
+              amount: s.amount,
+              currency: s.currency,
+              spend_date: s.spendDate,
+              is_recurring: s.isRecurring,
+              period_type: s.periodType,
+              created_at: s.createdAt,
+            }))
+          );
+        }
+
+        if (result.updatedSuppliers.length > 0) {
+          await supabase.from('suppliers').upsert(
+            result.updatedSuppliers.map((s) => ({
+              id: s.id,
+              organization_id: s.organizationId,
+              name: s.name,
+              cui: s.cui,
+              category: s.category,
+              rating: s.rating,
+              is_preferred: s.isPreferred,
+              total_annual_spend_ron: s.totalAnnualSpendRon,
+              contract_count: s.contractCount,
+              invoice_count: s.invoiceCount,
+              created_at: s.createdAt,
+            }))
+          );
+        }
+      } catch (dbErr) {
+        console.warn('Error persisting SPV import to Supabase:', dbErr);
+      }
+    }
 
     return result;
   };
@@ -1802,6 +1972,7 @@ export function SaveProvider({
         supplierBids: state.supplierBids || [],
         clientOffers: orgFilteredOffers,
         poolInterests: state.poolInterests || [],
+        importBatches: (state.importBatches || []).filter(b => b.organizationId === state.currentOrg.id),
         auditLogs: state.auditLogs,
         isHydrated,
         isDemoMode: isCurrentDemo,
@@ -1831,6 +2002,7 @@ export function SaveProvider({
         connectEfactura,
         disconnectEfactura,
         syncEfacturaInvoices,
+        importSpvInvoices,
         resetToDemo,
         signOut,
         refreshRealData,

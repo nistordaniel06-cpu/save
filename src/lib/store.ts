@@ -28,7 +28,8 @@ import {
   MarketplaceSupplier,
   SupplierBid,
   ClientOffer,
-  PoolInterest
+  PoolInterest,
+  EfacturaImportBatch
 } from './types';
 import { 
   DEMO_VERIFIED_DEMANDS, 
@@ -59,6 +60,7 @@ export interface AppState {
   supplierBids: SupplierBid[];
   clientOffers: ClientOffer[];
   poolInterests: PoolInterest[];
+  importBatches: EfacturaImportBatch[];
 }
 
 export const EMPTY_ORG_PLACEHOLDER: Organization = {
@@ -155,6 +157,22 @@ export function getDefaultDemoState(): AppState {
     supplierBids: DEMO_SUPPLIER_BIDS,
     clientOffers: DEMO_CLIENT_OFFERS,
     poolInterests: [],
+    importBatches: [
+      {
+        id: 'batch_demo_01',
+        organizationId: DEMO_ORG.id,
+        source: 'spv_manual',
+        fileName: 'Facturi_SPV_Aug2026.zip',
+        totalFiles: 184,
+        totalProcessed: 184,
+        importedCount: 184,
+        duplicatesCount: 0,
+        invalidCount: 0,
+        mismatchedCuiCount: 0,
+        uploadedBy: DEMO_USER.fullName,
+        createdAt: '2026-08-15T11:00:00Z',
+      }
+    ],
   };
 }
 
@@ -187,6 +205,7 @@ export function getEmptyRealState(user?: { id: string; email: string; fullName?:
     supplierBids: [],
     clientOffers: [],
     poolInterests: [],
+    importBatches: [],
   };
 }
 

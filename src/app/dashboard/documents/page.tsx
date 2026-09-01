@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import Link from 'next/link';
 import { useSave } from '@/lib/context';
+import { Button } from '@/components/ui/button';
 import { Dropzone } from '@/components/documents/dropzone';
 import { DocumentList } from '@/components/documents/document-list';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { FileText, Shield, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { FileText, Shield, Sparkles, CheckCircle2, AlertTriangle, Zap, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function DocumentsPage() {
@@ -18,14 +20,23 @@ export default function DocumentsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="pb-2 border-b border-zinc-200">
-        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2.5">
-          <FileText className="w-6 h-6 text-emerald-600" />
-          <span>Documente & Pipeline Extracție AI</span>
-        </h1>
-        <p className="text-xs text-zinc-500 mt-1">
-          Încarcă facturi fiscale, contracte-cadru și acorduri de abonament. Extracția AI analizează automat sumele, termenele și clauzele de preaviz.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2.5">
+            <FileText className="w-6 h-6 text-emerald-600" />
+            <span>Documente & Extracție Facturi</span>
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Încarcă facturi fiscale, contracte-cadru și acorduri de abonament sau importă pachete XML / ZIP descărcate din SPV ANAF.
+          </p>
+        </div>
+
+        <Link href="/settings/company">
+          <Button variant="purple" size="sm" className="gap-2 font-bold shadow-sm">
+            <Zap className="w-3.5 h-3.5" />
+            <span>Importă din SPV (e-Factura)</span>
+          </Button>
+        </Link>
       </div>
 
       {/* Upload Zone Card */}
