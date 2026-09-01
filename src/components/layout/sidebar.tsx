@@ -16,7 +16,8 @@ import {
   RotateCcw,
   Plus,
   Zap,
-  TrendingDown
+  TrendingDown,
+  Target
 } from 'lucide-react';
 import { useSave } from '@/lib/context';
 import { calculateSaveScore } from '@/lib/analytics/savings-calculator';
@@ -68,6 +69,13 @@ export function Sidebar() {
       href: '/dashboard/requests',
       icon: ArrowRightLeft,
       badge: undefined,
+    },
+    {
+      label: 'Prospectare & Lead-uri',
+      href: '/dashboard/prospects',
+      icon: Target,
+      badge: '8 Firme',
+      badgeVariant: 'success' as const,
     },
   ];
 
