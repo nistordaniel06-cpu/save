@@ -22,14 +22,14 @@ export function Badge({
   };
 
   const variantClasses = {
-    default: 'bg-zinc-100 text-zinc-800 border border-zinc-200/80',
-    subtle: 'bg-zinc-50 text-zinc-600 border border-zinc-200/60',
-    success: 'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
-    warning: 'bg-amber-50 text-amber-800 border border-amber-200/80',
-    danger: 'bg-rose-50 text-rose-700 border border-rose-200/80',
-    info: 'bg-blue-50 text-blue-700 border border-blue-200/80',
-    purple: 'bg-violet-50 text-violet-700 border border-violet-200/80',
-    outline: 'bg-transparent text-zinc-700 border border-zinc-300',
+    default: 'bg-zinc-100 text-zinc-900 border border-zinc-300 font-semibold',
+    subtle: 'bg-zinc-50 text-zinc-800 border border-zinc-200 font-medium',
+    success: 'bg-emerald-100 text-emerald-950 border border-emerald-300 font-semibold',
+    warning: 'bg-amber-100 text-amber-950 border border-amber-300 font-semibold',
+    danger: 'bg-rose-100 text-rose-950 border border-rose-300 font-semibold',
+    info: 'bg-blue-100 text-blue-950 border border-blue-300 font-semibold',
+    purple: 'bg-purple-100 text-purple-950 border border-purple-300 font-semibold',
+    outline: 'bg-white text-zinc-900 border border-zinc-300 font-semibold',
   };
 
   return (

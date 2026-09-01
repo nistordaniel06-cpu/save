@@ -41,6 +41,8 @@ export interface Profile {
   createdAt: string;
 }
 
+export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected' | 'suspended';
+
 export interface Organization {
   id: string;
   name: string;
@@ -53,6 +55,34 @@ export interface Organization {
   isDemo: boolean;
   currency: string;
   createdAt: string;
+  verificationStatus?: VerificationStatus;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  verificationNotes?: string;
+  companyLookupSource?: string;
+  companyLookupCheckedAt?: string;
+  companyLookupStatus?: 'active' | 'inactive' | 'unknown';
+  address?: string;
+  city?: string;
+  county?: string;
+  postalCode?: string;
+  vatRegistered?: boolean;
+  roEfacturaStatus?: string;
+}
+
+export type PoolInterestStatus = 'interested' | 'matched' | 'invited' | 'joined' | 'closed';
+
+export interface PoolInterest {
+  id: string;
+  organizationId: string;
+  category: SpendCategory;
+  estimatedSpend: number;
+  estimatedVolume?: number;
+  unit?: string;
+  notes?: string;
+  status: PoolInterestStatus;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface OrganizationMember {

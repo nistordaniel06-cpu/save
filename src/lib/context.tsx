@@ -33,7 +33,8 @@ import {
   DemandPoolMember,
   MarketplaceSupplier,
   SupplierBid,
-  ClientOffer
+  ClientOffer,
+  PoolInterest
 } from './types';
 import { detectVerifiedDemands } from './demand/demand-detector';
 import { calculateContractTimeline } from './analytics/contract-calculator';
@@ -57,12 +58,15 @@ interface SaveContextType {
   marketplaceSuppliers: MarketplaceSupplier[];
   supplierBids: SupplierBid[];
   clientOffers: ClientOffer[];
+  poolInterests: PoolInterest[];
   auditLogs: AuditEvent[];
   isHydrated: boolean;
   isDemoMode: boolean;
   supabaseUser: any | null;
   switchOrganization: (orgId: string) => void;
   createOrganization: (orgData: Partial<Organization>) => Promise<Organization>;
+  updateOrganization: (orgId: string, data: Partial<Organization>) => Promise<void>;
+  submitPoolInterest: (interestData: Omit<PoolInterest, 'id' | 'organizationId' | 'createdAt' | 'status'>) => Promise<PoolInterest>;
   uploadDocument: (file: { name: string; type: string; size: number; textSnippet?: string; rawFile?: File | Blob }) => Promise<DocumentItem>;
   updateExtraction: (documentId: string, updatedExtraction: Partial<DocumentExtraction>) => Promise<void>;
   deleteDocument: (documentId: string) => Promise<void>;
@@ -483,6 +487,91 @@ export function SaveProvider({
     });
 
     return newOrg;
+  };
+
+  const updateOrganization = async (orgId: string, data: Partial<Organization>): Promise<void> => {
+    try {
+      if (supabaseUser && !state.currentOrg.isDemo) {
+        await supabase
+          .from('organizations')
+          .update({
+            name: data.name,
+            cui: data.cui,
+            registration_number: data.registrationNumber,
+            industry: data.industry,
+            employee_range: data.employeeRange,
+            monthly_opex_ron: data.monthlyOpexRon,
+            save_score: data.saveScore,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', orgId);
+      }
+    } catch (e) {
+      console.warn('Could not update organization in Supabase:', e);
+    }
+
+    updateState((prev) => {
+      const nextOrgs = prev.organizations.map((o) => (o.id === orgId ? { ...o, ...data } : o));
+      const nextCurrent = prev.currentOrg.id === orgId ? { ...prev.currentOrg, ...data } : prev.currentOrg;
+      const next = {
+        ...prev,
+        organizations: nextOrgs,
+        currentOrg: nextCurrent,
+      };
+      if (isDemoMode) {
+        saveDemoState(next);
+      } else {
+        saveRealState(next);
+      }
+      return next;
+    });
+  };
+
+  const submitPoolInterest = async (interestData: Omit<PoolInterest, 'id' | 'organizationId' | 'createdAt' | 'status'>): Promise<PoolInterest> => {
+    const interestId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `pool_int_${Date.now()}`;
+    const newInterest: PoolInterest = {
+      id: interestId,
+      organizationId: state.currentOrg.id || 'org_unassigned',
+      category: interestData.category,
+      estimatedSpend: Number(interestData.estimatedSpend) || 0,
+      estimatedVolume: interestData.estimatedVolume ? Number(interestData.estimatedVolume) : undefined,
+      unit: interestData.unit,
+      notes: interestData.notes,
+      status: 'interested',
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      if (supabaseUser && state.currentOrg.id && !state.currentOrg.isDemo) {
+        await supabase.from('pool_interests').insert({
+          id: interestId,
+          organization_id: state.currentOrg.id,
+          category: newInterest.category,
+          estimated_spend: newInterest.estimatedSpend,
+          estimated_volume: newInterest.estimatedVolume,
+          unit: newInterest.unit,
+          notes: newInterest.notes,
+          status: newInterest.status,
+        });
+      }
+    } catch (err) {
+      console.warn('Could not persist pool interest to Supabase, saving locally:', err);
+    }
+
+    updateState((prev) => {
+      const next = {
+        ...prev,
+        poolInterests: [newInterest, ...(prev.poolInterests || [])],
+      };
+      if (isDemoMode) {
+        saveDemoState(next);
+      } else {
+        saveRealState(next);
+      }
+      return next;
+    });
+
+    return newInterest;
   };
 
   const uploadDocument = async (file: { 
@@ -1509,12 +1598,15 @@ export function SaveProvider({
         marketplaceSuppliers: state.marketplaceSuppliers || [],
         supplierBids: state.supplierBids || [],
         clientOffers: orgFilteredOffers,
+        poolInterests: state.poolInterests || [],
         auditLogs: state.auditLogs,
         isHydrated,
         isDemoMode: isCurrentDemo,
         supabaseUser,
         switchOrganization,
         createOrganization,
+        updateOrganization,
+        submitPoolInterest,
         uploadDocument,
         updateExtraction,
         deleteDocument,

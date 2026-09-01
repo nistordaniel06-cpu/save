@@ -58,6 +58,60 @@ function OnboardingContent() {
     }
   };
 
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupResult, setLookupResult] = useState<any | null>(null);
+  const [lookupNotice, setLookupNotice] = useState<string | null>(null);
+
+  const handleCuiLookup = async (cuiToLookup: string) => {
+    const clean = cuiToLookup.trim();
+    if (!clean || clean.length < 2) {
+      setLookupResult(null);
+      setLookupNotice(null);
+      return;
+    }
+
+    setLookupLoading(true);
+    setLookupNotice(null);
+
+    try {
+      const res = await fetch('/api/company-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cui: clean }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.company) {
+        setLookupResult(data.company);
+        setLookupNotice(null);
+        // Autofill company name if empty or previously autofilled
+        if (!companyName || companyName === '' || companyName.startsWith('Companie Nouă')) {
+          setCompanyName(data.company.name);
+        }
+      } else {
+        setLookupResult(null);
+        setLookupNotice(data.error?.userMessage || 'Nu am găsit automat compania. Poți completa datele manual.');
+      }
+    } catch (err) {
+      console.warn('Company lookup error:', err);
+      setLookupResult(null);
+      setLookupNotice('Serviciul de verificare nu este disponibil momentan. Poți continua și completa datele manual.');
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  // Debounced auto-lookup on CUI change
+  React.useEffect(() => {
+    const raw = cui.trim().replace(/^RO\s*/i, '').replace(/\D/g, '');
+    if (raw.length >= 6 && raw.length <= 10) {
+      const timer = setTimeout(() => {
+        handleCuiLookup(cui);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [cui]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyName.trim()) {
@@ -75,7 +129,13 @@ function OnboardingContent() {
         industry,
         employeeRange,
         monthlyOpexRon: Number(monthlyOpexRon),
-      });
+        companyLookupSource: lookupResult?.source || undefined,
+        companyLookupCheckedAt: lookupResult?.checkedAt || undefined,
+        companyLookupStatus: lookupResult?.status || undefined,
+        address: lookupResult?.address || undefined,
+        vatRegistered: lookupResult?.vatRegistered,
+        roEfacturaStatus: lookupResult?.roEfacturaRegistered ? 'inregistrat' : undefined,
+      } as any);
 
       router.push('/dashboard/documents');
     } catch (err: any) {
@@ -125,8 +185,101 @@ function OnboardingContent() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5 text-xs">
-            {/* Company Name & CUI */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* CUI Lookup & Company Name */}
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-zinc-700">CUI / CIF Companie</label>
+                  <span className="text-[10px] text-zinc-400">Verificare automată date publice</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="ex: 14399840 sau RO14399840"
+                    value={cui}
+                    onChange={(e) => setCui(e.target.value)}
+                    className="flex-1 px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={lookupLoading || !cui.trim()}
+                    onClick={() => handleCuiLookup(cui)}
+                    className="shrink-0 text-xs px-3 border-zinc-300 hover:bg-zinc-100"
+                  >
+                    {lookupLoading ? 'Verificăm compania…' : 'Verifică firma'}
+                  </Button>
+                </div>
+              </div>
+
+              {lookupLoading && (
+                <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-xs text-zinc-600 flex items-center gap-2">
+                  <div className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span>Verificăm compania în registrul public ANAF…</span>
+                </div>
+              )}
+
+              {lookupNotice && !lookupLoading && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                  {lookupNotice}
+                </div>
+              )}
+
+              {lookupResult && !lookupLoading && (
+                <div className="p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <span className="font-bold text-emerald-900 flex items-center gap-1.5 text-xs">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      ✓ Companie identificată
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-mono">
+                      Sursă: {lookupResult.source}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px] pt-1">
+                    <div>
+                      <span className="text-zinc-500 block text-[10px]">Denumire:</span>
+                      <span className="font-semibold text-zinc-900">{lookupResult.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px]">CUI:</span>
+                      <span className="font-mono font-semibold text-zinc-900">{lookupResult.cui}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px]">Status:</span>
+                      <span className="font-semibold text-emerald-700">
+                        {lookupResult.status === 'active' ? 'Activă' : 'Inactivă'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block text-[10px]">TVA:</span>
+                      <span className="font-semibold text-zinc-900">
+                        {lookupResult.vatRegistered ? 'Plătitoare TVA' : 'Neplătitoare TVA'}
+                      </span>
+                    </div>
+                    {lookupResult.roEfacturaRegistered && (
+                      <div>
+                        <span className="text-zinc-500 block text-[10px]">RO e-Factura:</span>
+                        <span className="font-semibold text-emerald-700">Înregistrată</span>
+                      </div>
+                    )}
+                    {lookupResult.registrationNumber && (
+                      <div>
+                        <span className="text-zinc-500 block text-[10px]">Nr. Reg. Com.:</span>
+                        <span className="font-semibold text-zinc-900">{lookupResult.registrationNumber}</span>
+                      </div>
+                    )}
+                  </div>
+                  {lookupResult.address && (
+                    <div className="text-[11px] pt-1.5 border-t border-emerald-100">
+                      <span className="text-zinc-500 block text-[10px]">Adresă:</span>
+                      <span className="text-zinc-800">{lookupResult.address}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-1">
                 <label className="font-semibold text-zinc-700">Denumire Companie *</label>
                 <input
@@ -136,17 +289,6 @@ function OnboardingContent() {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   className="w-full px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-semibold text-zinc-700">CUI / CIF (Opțional)</label>
-                <input
-                  type="text"
-                  placeholder="ex: RO 41920831"
-                  value={cui}
-                  onChange={(e) => setCui(e.target.value)}
-                  className="w-full px-3 py-2 text-sm sm:text-xs rounded-lg border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white font-mono"
                 />
               </div>
             </div>

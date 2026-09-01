@@ -27,7 +27,8 @@ import {
   DemandPoolMember,
   MarketplaceSupplier,
   SupplierBid,
-  ClientOffer
+  ClientOffer,
+  PoolInterest
 } from './types';
 import { 
   DEMO_VERIFIED_DEMANDS, 
@@ -57,6 +58,7 @@ export interface AppState {
   marketplaceSuppliers: MarketplaceSupplier[];
   supplierBids: SupplierBid[];
   clientOffers: ClientOffer[];
+  poolInterests: PoolInterest[];
 }
 
 export const EMPTY_ORG_PLACEHOLDER: Organization = {
@@ -152,6 +154,7 @@ export function getDefaultDemoState(): AppState {
     marketplaceSuppliers: DEMO_MARKETPLACE_SUPPLIERS,
     supplierBids: DEMO_SUPPLIER_BIDS,
     clientOffers: DEMO_CLIENT_OFFERS,
+    poolInterests: [],
   };
 }
 
@@ -183,6 +186,7 @@ export function getEmptyRealState(user?: { id: string; email: string; fullName?:
     marketplaceSuppliers: [],
     supplierBids: [],
     clientOffers: [],
+    poolInterests: [],
   };
 }
 

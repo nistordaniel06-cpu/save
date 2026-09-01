@@ -21,7 +21,7 @@ import {
   Sparkles,
   Lock
 } from 'lucide-react';
-import { VerifiedDemand, DemandPool, ClientOffer } from '@/lib/types';
+import { VerifiedDemand, DemandPool, ClientOffer, SpendCategory } from '@/lib/types';
 import Link from 'next/link';
 
 export default function DemandPage() {
@@ -31,17 +31,28 @@ export default function DemandPage() {
     demandPools, 
     demandPoolMembers, 
     clientOffers,
+    poolInterests,
+    submitPoolInterest,
     joinDemandPool, 
     withdrawFromDemandPool, 
     acceptClientOffer, 
     rejectClientOffer,
-    detectDemandsForCurrentOrg
+    isDemoMode,
   } = useSave();
 
   const [joiningPoolId, setJoiningPoolId] = useState<string | null>(null);
   const [selectedDemandForJoin, setSelectedDemandForJoin] = useState<string>('');
   const [consentChecked, setConsentChecked] = useState<boolean>(false);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
+
+  // Proposal modal state
+  const [isProposingCategory, setIsProposingCategory] = useState(false);
+  const [propCategory, setPropCategory] = useState<SpendCategory>('Curierat');
+  const [propSpend, setPropSpend] = useState<string>('5000');
+  const [propVolume, setPropVolume] = useState<string>('300');
+  const [propUnit, setPropUnit] = useState<string>('colete / lună');
+  const [propNotes, setPropNotes] = useState<string>('');
+  const [isSubmittingProp, setIsSubmittingProp] = useState(false);
 
   // Filter demands for current org
   const myDemands = verifiedDemands.filter((d) => d.organizationId === currentOrg.id);
@@ -58,6 +69,11 @@ export default function DemandPage() {
 
   // Offers for current org
   const myOffers = clientOffers.filter((o) => o.organizationId === currentOrg.id);
+
+  // User's submitted pool interests
+  const myPoolInterests = (poolInterests || []).filter(
+    (pi) => !currentOrg.id || pi.organizationId === currentOrg.id
+  );
 
   const handleJoinPool = async (poolId: string, demandId: string) => {
     if (!consentChecked) return;
@@ -85,16 +101,40 @@ export default function DemandPage() {
     await rejectClientOffer(offerId);
   };
 
+  const handleProposalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingProp(true);
+    try {
+      await submitPoolInterest({
+        category: propCategory,
+        estimatedSpend: Number(propSpend) || 0,
+        estimatedVolume: propVolume ? Number(propVolume) : undefined,
+        unit: propUnit,
+        notes: propNotes.trim() || undefined,
+      });
+      setIsProposingCategory(false);
+      setPropNotes('');
+      setActionSuccessMessage('Propunerea ta de categorie a fost înregistrată! Te vom anunța când există suficient interes pentru o negociere colectivă.');
+      setTimeout(() => setActionSuccessMessage(null), 6000);
+    } catch (err) {
+      console.error('Error submitting pool interest:', err);
+    } finally {
+      setIsSubmittingProp(false);
+    }
+  };
+
+  const isRealEmptyState = !isDemoMode && availablePools.length === 0 && myActivePools.length === 0 && myDemands.length === 0;
+
   return (
     <div className="space-y-8 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-zinc-900 tracking-tight">Puterea Mea de Cumpărare — Demand Pools</h1>
-            <Badge variant="purple" size="sm">SAVE v2 Network</Badge>
+            <h1 className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight">Puterea Mea de Cumpărare — Demand Pools</h1>
+            <Badge variant="purple" size="sm">SAVE Group Buying</Badge>
           </div>
-          <p className="text-sm text-zinc-500 mt-1 max-w-3xl">
+          <p className="text-xs sm:text-sm text-zinc-500 mt-1 max-w-3xl">
             Nu mai negocia singur tarifele B2B. SAVE combină cererea ta reală și verificată cu a altor companii din România, obținând tarife corporate garantate prin licitații anonime directe de la furnizori.
           </p>
         </div>
@@ -102,11 +142,11 @@ export default function DemandPage() {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={() => detectDemandsForCurrentOrg()}
-          className="gap-2 shrink-0 border-zinc-300"
+          onClick={() => setIsProposingCategory(true)}
+          className="gap-2 shrink-0 border-purple-300 bg-purple-50/50 hover:bg-purple-100 text-purple-900 font-semibold"
         >
-          <Sparkles className="w-4 h-4 text-emerald-600" />
-          <span>Scanează din nou facturile</span>
+          <Sparkles className="w-4 h-4 text-purple-600" />
+          <span>Propune o categorie</span>
         </Button>
       </div>
 
@@ -122,7 +162,254 @@ export default function DemandPage() {
         </div>
       )}
 
-      {/* 4 Clear Zones */}
+      {/* MODAL / FORMULAR: PROPUNE O CATEGORIE PENTRU POOL */}
+      {isProposingCategory && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl border border-zinc-200 shadow-2xl max-w-lg w-full p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-zinc-900 text-base">Propune o Categorie de Cumpărare</h3>
+                  <p className="text-[11px] text-zinc-500">SAVE va căuta parteneri IMM cu același profil de consum</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsProposingCategory(false)}
+                className="text-zinc-400 hover:text-zinc-700 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleProposalSubmit} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-semibold text-zinc-700">Categorie Achiziție *</label>
+                <select
+                  value={propCategory}
+                  onChange={(e) => setPropCategory(e.target.value as SpendCategory)}
+                  className="w-full p-2.5 rounded-lg border border-zinc-300 bg-white font-medium text-zinc-900"
+                >
+                  <option value="Curierat">Curierat & Logistică Expedieri</option>
+                  <option value="Telecom">Telecom & Flotă Mobilă Voce+Date</option>
+                  <option value="Software">Software & Licențe Cloud / SaaS</option>
+                  <option value="Energie">Energie Electrică & Gaze Naturale</option>
+                  <option value="Consumabile">Consumabile Birou & Ambalaje</option>
+                  <option value="Servicii">Servicii Profesionale (Contabilitate, SSM, Curățenie)</option>
+                  <option value="Altele">Altele</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-semibold text-zinc-700">Buget Lunar Estimat (RON) *</label>
+                  <input
+                    type="number"
+                    required
+                    min={100}
+                    value={propSpend}
+                    onChange={(e) => setPropSpend(e.target.value)}
+                    placeholder="ex: 5000"
+                    className="w-full p-2.5 rounded-lg border border-zinc-300 bg-white font-mono text-zinc-900"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-zinc-700">Volum Consum Estimat</label>
+                  <input
+                    type="number"
+                    value={propVolume}
+                    onChange={(e) => setPropVolume(e.target.value)}
+                    placeholder="ex: 350"
+                    className="w-full p-2.5 rounded-lg border border-zinc-300 bg-white font-mono text-zinc-900"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-zinc-700">Unitate de Măsură</label>
+                <input
+                  type="text"
+                  value={propUnit}
+                  onChange={(e) => setPropUnit(e.target.value)}
+                  placeholder="ex: colete / lună, SIM-uri, licențe"
+                  className="w-full p-2.5 rounded-lg border border-zinc-300 bg-white text-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-zinc-700">Cerințe Speciale sau Notițe (Opțional)</label>
+                <textarea
+                  rows={2}
+                  value={propNotes}
+                  onChange={(e) => setPropNotes(e.target.value)}
+                  placeholder="ex: Avem nevoie de ridicare zilnică după ora 16:00 și asigurare inclusă."
+                  className="w-full p-2.5 rounded-lg border border-zinc-300 bg-white text-zinc-900 resize-none"
+                />
+              </div>
+
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-[11px] text-purple-900 flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                <span>
+                  Propunerea este complet anonimă. Când mai multe firme din rețea exprimă un interes similar, SAVE formează grupul și declanșează licitația către furnizorii acreditați.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsProposingCategory(false)}
+                >
+                  Anulează
+                </Button>
+                <Button
+                  type="submit"
+                  variant="purple"
+                  size="sm"
+                  disabled={isSubmittingProp || !propSpend}
+                  className="gap-1.5 font-bold"
+                >
+                  {isSubmittingProp ? 'Se trimite…' : 'Trimite propunerea'}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* REAL EMPTY STATE: POOL-URILE SAVE SUNT IN PREGATIRE */}
+      {isRealEmptyState ? (
+        <div className="space-y-8">
+          <Card className="p-6 sm:p-10 border border-purple-200/80 bg-gradient-to-b from-purple-50/40 via-white to-white shadow-sm space-y-8">
+            <div className="max-w-2xl mx-auto text-center space-y-3">
+              <Badge variant="purple" size="sm" className="mb-1">
+                Putere de Cumpărare Agregată
+              </Badge>
+              <h2 className="text-xl sm:text-3xl font-black text-zinc-900 tracking-tight">
+                Pool-urile SAVE sunt în pregătire
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-600 leading-relaxed">
+                Când mai multe companii au aceeași nevoie de achiziție, SAVE poate grupa cererea pentru a obține condiții mai bune de la furnizori.
+              </p>
+            </div>
+
+            {/* 3-Step Visual Diagram */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              <div className="p-5 rounded-2xl bg-white border border-zinc-200/90 shadow-sm space-y-3 relative flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm shadow-sm">
+                    1
+                  </div>
+                  <h3 className="font-bold text-zinc-900 text-sm">Companiile își declară nevoia</h3>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    Înregistrezi volumul de consum și categoria de achiziții unde compania ta dorește un tarif mai competitiv.
+                  </p>
+                </div>
+                <div className="pt-2 text-[11px] font-mono text-purple-700 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Declarare 100% anonimă</span>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white border border-purple-200 shadow-sm space-y-3 relative flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                    2
+                  </div>
+                  <h3 className="font-bold text-zinc-900 text-sm">SAVE agregă volumul</h3>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    Algoritmul combină cererile compatibile din rețea, creând un lot mare de achiziție la nivel regional sau național.
+                  </p>
+                </div>
+                <div className="pt-2 text-[11px] font-mono text-purple-700 flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Volum multiplicat de 10x–50x</span>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white border border-zinc-200/90 shadow-sm space-y-3 relative flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm shadow-sm">
+                    3
+                  </div>
+                  <h3 className="font-bold text-zinc-900 text-sm">Furnizorii concurează</h3>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    Furnizorii mari licitează direct pentru întregul lot agregat, oferind prețuri corporative rezervate marilor conturi.
+                  </p>
+                </div>
+                <div className="pt-2 text-[11px] font-mono text-emerald-700 flex items-center gap-1">
+                  <TrendingDown className="w-3.5 h-3.5" />
+                  <span>Economii de 18% – 35%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA & Secondary Notice */}
+            <div className="max-w-md mx-auto text-center space-y-3 pt-2">
+              <Button
+                size="lg"
+                variant="purple"
+                onClick={() => setIsProposingCategory(true)}
+                className="w-full sm:w-auto px-8 gap-2 font-bold shadow-md"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Propune o categorie</span>
+              </Button>
+              <p className="text-xs text-zinc-500">
+                Te vom anunța când există suficient interes pentru o negociere colectivă.
+              </p>
+            </div>
+          </Card>
+
+          {/* User Submitted Interests Section */}
+          {myPoolInterests.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-600" />
+                <span>Categoriile propuse de compania ta ({myPoolInterests.length})</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {myPoolInterests.map((interest) => (
+                  <Card key={interest.id} className="border-purple-200/80 bg-purple-50/20">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="purple" size="sm">{interest.category}</Badge>
+                        <Badge variant="info" size="sm">În Monitorizare</Badge>
+                      </div>
+                      <CardTitle className="text-sm mt-1 text-zinc-900">
+                        {interest.estimatedSpend.toLocaleString('ro-RO')} lei / lună estimat
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-xs space-y-1.5 pt-0">
+                      {interest.estimatedVolume && (
+                        <p className="text-zinc-600">
+                          Volum indicat: <strong className="text-zinc-900 font-mono">{interest.estimatedVolume} {interest.unit || ''}</strong>
+                        </p>
+                      )}
+                      {interest.notes && (
+                        <p className="text-zinc-500 italic text-[11px]">
+                          „{interest.notes}”
+                        </p>
+                      )}
+                      <p className="text-[10px] text-zinc-400 font-mono pt-1">
+                        Înregistrat la: {new Date(interest.createdAt).toLocaleDateString('ro-RO')}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Normal Pool Zones (shown in demo or when pools exist) */}
 
       {/* ZONA 4: OFERTE REZULTATE DIN DEMAND POOLS (Afișată cu prioritate dacă există oferte) */}
       {myOffers.length > 0 && (
@@ -532,6 +819,8 @@ export default function DemandPage() {
           })}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
