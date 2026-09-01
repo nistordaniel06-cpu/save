@@ -5,11 +5,13 @@ import { useSave } from '@/lib/context';
 import { calculateContractRadar } from '@/lib/analytics/contract-calculator';
 import { ContractTable } from '@/components/contracts/contract-table';
 import { StatCard } from '@/components/ui/stat-card';
-import { FileCheck, AlertTriangle, Clock, RefreshCw, Download } from 'lucide-react';
+import { FileCheck, AlertTriangle, Clock, RefreshCw, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { NoticeLetterModal } from '@/components/contracts/notice-letter-modal';
 
 export default function ContractsPage() {
   const { contracts, currentOrg } = useSave();
+  const [isNoticeModalOpen, setIsNoticeModalOpen] = React.useState(false);
   const radar = calculateContractRadar(contracts);
 
   const exportContractsCsv = () => {
@@ -48,16 +50,28 @@ export default function ContractsPage() {
             Urmărește termenele limită de notificare a preavizului, clauzele de reînnoire automată și oportunitățile de renegociere înainte de blocarea în tarife vechi.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={exportContractsCsv}
-          disabled={contracts.length === 0}
-          className="shrink-0 flex items-center gap-2"
-        >
-          <Download className="w-4 h-4 text-zinc-600" />
-          <span>Exportă CSV Contracte</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="purple"
+            size="sm"
+            onClick={() => setIsNoticeModalOpen(true)}
+            className="shrink-0 flex items-center gap-1.5 font-bold shadow-md shadow-purple-600/20"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Generează Notificare Preaviz</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportContractsCsv}
+            disabled={contracts.length === 0}
+            className="shrink-0 flex items-center gap-2"
+          >
+            <Download className="w-4 h-4 text-zinc-600" />
+            <span>Exportă CSV</span>
+          </Button>
+        </div>
       </div>
 
       {/* Radar KPI Cards */}
@@ -106,6 +120,12 @@ export default function ContractsPage() {
         </div>
         <ContractTable />
       </div>
+
+      {/* Notice Letter Modal */}
+      <NoticeLetterModal
+        isOpen={isNoticeModalOpen}
+        onClose={() => setIsNoticeModalOpen(false)}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { DollarSign, TrendingUp, Building2, Layers, Search, Download, PieChart, 
 import { Button } from '@/components/ui/button';
 import { SpendCategory } from '@/lib/types';
 import { ProcurementRequestModal } from '@/components/opportunities/procurement-request-modal';
+import { auditSupplierFiscalProfile } from '@/lib/analytics/supplier-fiscal-audit';
 import Link from 'next/link';
 
 export default function SpendPage() {
@@ -215,8 +216,19 @@ export default function SpendPage() {
                                 <span>{sup.supplierName}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3.5 font-mono text-xs text-zinc-500">
-                              {match?.cui || '—'}
+                            <td className="px-4 py-3.5">
+                              <div className="space-y-0.5">
+                                <span className="font-mono text-xs font-semibold text-zinc-900 block">{match?.cui || '—'}</span>
+                                {match && (
+                                  <span className={`inline-flex items-center text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                                    auditSupplierFiscalProfile(match).deductibilityRisk === 'low'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}>
+                                    {auditSupplierFiscalProfile(match).deductibilityRisk === 'low' ? '✓ Fiscal Activ' : '⚠ Verificare'}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-3.5">
                               <Badge variant="default" size="sm">{sup.category}</Badge>

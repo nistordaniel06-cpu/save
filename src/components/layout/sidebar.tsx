@@ -17,7 +17,10 @@ import {
   Plus,
   Zap,
   Users,
-  X
+  X,
+  Scale,
+  Sliders,
+  Printer
 } from 'lucide-react';
 import { useSave } from '@/lib/context';
 import { calculateSaveScore } from '@/lib/analytics/savings-calculator';
@@ -83,6 +86,27 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
       icon: FileCheck,
       badge: `${contracts.filter((c) => c.status === 'in_renewal_window').length} active`,
       badgeVariant: 'danger' as const,
+    },
+    {
+      label: 'SAVE Compare',
+      href: `${basePath}/compare`,
+      icon: Scale,
+      badge: 'Nou',
+      badgeVariant: 'emerald' as const,
+    },
+    {
+      label: 'Simulator OPEX',
+      href: `${basePath}/simulator`,
+      icon: Sliders,
+      badge: 'Prognoză',
+      badgeVariant: 'purple' as const,
+    },
+    {
+      label: 'Raport Executiv CFO',
+      href: `${basePath}/report`,
+      icon: Printer,
+      badge: 'PDF',
+      badgeVariant: 'default' as const,
     },
     {
       label: 'Cereri Optimizare',

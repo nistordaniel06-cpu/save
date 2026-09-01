@@ -8,7 +8,10 @@ import {
   RotateCcw,
   LogOut,
   Menu,
-  CheckCircle2
+  CheckCircle2,
+  Building2,
+  ChevronDown,
+  Plus
 } from 'lucide-react';
 import { useSave } from '@/lib/context';
 import { Button } from '@/components/ui/button';
@@ -21,9 +24,10 @@ interface TopNavProps {
 }
 
 export function TopNav({ onOpenMobileMenu }: TopNavProps) {
-  const { currentOrg, currentUser, resetToDemo, supabaseUser, signOut, isDemoMode } = useSave();
+  const { currentOrg, currentUser, resetToDemo, supabaseUser, signOut, isDemoMode, organizations, switchOrganization } = useSave();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [showDemoToast, setShowDemoToast] = useState(false);
+  const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
 
   const isDemo = Boolean(isDemoMode || currentOrg.isDemo);
 
@@ -48,24 +52,60 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
             </button>
           )}
 
-          <div className="flex items-center gap-1.5 sm:gap-2 truncate max-w-[140px] sm:max-w-none">
-            <span className="font-semibold text-zinc-900 text-xs sm:text-sm tracking-tight truncate" suppressHydrationWarning>
-              {currentOrg.name || 'Organizație'}
-            </span>
-            {isDemo ? (
-              <Badge variant="warning" size="sm" className="hidden sm:inline-flex">
-                Mod Demo
-              </Badge>
-            ) : (
-              <Badge variant="success" size="sm" className="hidden sm:inline-flex">
-                Organizație Reală
-              </Badge>
+          {/* Multi-Company Dropdown Switcher */}
+          <div className="relative">
+            <button
+              onClick={() => setIsOrgDropdownOpen(!isOrgDropdownOpen)}
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 rounded-xl hover:bg-zinc-100 transition-colors text-left cursor-pointer border border-transparent hover:border-zinc-200"
+            >
+              <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="truncate max-w-[130px] sm:max-w-[200px]">
+                <span className="font-semibold text-zinc-900 text-xs sm:text-sm tracking-tight block truncate" suppressHydrationWarning>
+                  {currentOrg.name || 'Organizație'}
+                </span>
+                <span className="text-[10px] text-zinc-400 font-mono block truncate" suppressHydrationWarning>
+                  {currentOrg.cui || 'Fără CUI'}
+                </span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            </button>
+
+            {isOrgDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-zinc-200 py-2 z-50 animate-in fade-in">
+                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  Compania Activă
+                </div>
+                {organizations.map((org) => (
+                  <button
+                    key={org.id}
+                    onClick={() => {
+                      switchOrganization(org.id);
+                      setIsOrgDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs hover:bg-zinc-50 cursor-pointer ${
+                      org.id === currentOrg.id ? 'font-bold text-emerald-700 bg-emerald-50/50' : 'text-zinc-700'
+                    }`}
+                  >
+                    <div className="truncate">
+                      <p className="truncate">{org.name}</p>
+                      <p className="text-[10px] font-mono text-zinc-400">{org.cui || 'Fără CUI'}</p>
+                    </div>
+                    {org.id === currentOrg.id && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                  </button>
+                ))}
+                <div className="border-t border-zinc-100 mt-1 pt-1 px-2">
+                  <Link
+                    href="/settings/company"
+                    onClick={() => setIsOrgDropdownOpen(false)}
+                    className="w-full px-2 py-1.5 text-xs text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg flex items-center gap-1.5 font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Adaugă Firmă Nouă în Grup</span>
+                  </Link>
+                </div>
+              </div>
             )}
           </div>
-          <span className="text-zinc-300 hidden sm:inline">/</span>
-          <span className="text-xs text-zinc-500 font-mono hidden sm:inline" suppressHydrationWarning>
-            {currentOrg.industry || 'B2B'}
-          </span>
         </div>
 
         {/* Right: Actions, Quick Upload, and User Nav */}
