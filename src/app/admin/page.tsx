@@ -17,7 +17,8 @@ import {
   Clock, 
   AlertTriangle,
   Lock,
-  ChevronRight
+  ChevronRight,
+  Globe
 } from 'lucide-react';
 import { OptimizationStatus } from '@/lib/types';
 import { ExtractionReviewModal } from '@/components/documents/extraction-review-modal';
@@ -56,23 +57,23 @@ export default function AdminPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href="/admin/bucharest-prospects"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-xs transition-colors"
+            href="/admin/scraper"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Decidenți București (CFO/CEO)</span>
+            <Globe className="w-3.5 h-3.5" />
+            <span>Master Scraper România (PJ + PF)</span>
           </Link>
 
           <Link
-            href="/admin/prospects"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors"
+            href="/admin/bucharest-prospects"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-xs transition-colors"
           >
-            <span>Lead Scraper Firme</span>
+            <span>Decidenți București</span>
           </Link>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 text-white text-xs font-mono">
             <Lock className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Tenant Isolation</span>
+            <span>Owner Restricted</span>
           </div>
         </div>
       </div>
