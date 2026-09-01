@@ -63,7 +63,7 @@ function OnboardingContent() {
         monthlyOpexRon: Number(monthlyOpexRon),
       });
 
-      router.push('/dashboard');
+      router.push('/dashboard/documents');
     } catch (err: any) {
       console.error('Failed to create organization:', err);
       setErrorMsg(err?.message || 'Eroare la crearea organizației. Reîncearcă.');

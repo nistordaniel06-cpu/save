@@ -28,7 +28,7 @@ function LoginContent() {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/dashboard/documents`,
           },
         });
         if (error) throw error;
@@ -39,7 +39,19 @@ function LoginContent() {
           password,
         });
         if (error) throw error;
-        router.push('/dashboard');
+
+        // Check if user has an active real organization
+        const { data: members } = await supabase
+          .from('organization_members')
+          .select('organization_id, organizations(*)')
+          .eq('user_id', data.user.id);
+
+        const realOrgs = (members || []).filter((m: any) => m.organizations && !m.organizations.is_demo);
+        if (realOrgs.length === 0) {
+          router.push('/onboarding');
+        } else {
+          router.push('/dashboard/documents');
+        }
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Eroare la autentificare. Verifică datele introduse.');
