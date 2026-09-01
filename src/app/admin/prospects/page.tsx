@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { scrapeRomanianLeads, CompanyLead } from '@/lib/prospects/company-scraper';
 import { generateProspectPitch, ColdPitchTemplates } from '@/lib/prospects/lead-scoring';
+import { triggerCsvDownload } from '@/lib/utils/export-csv';
 import { StatCard } from '@/components/ui/stat-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -82,14 +83,7 @@ export default function AdminProspectsPage() {
       l.phone || '',
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `SAVE_Admin_Prospects_Scor_Mic_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    triggerCsvDownload('SAVE_Admin_Prospects_Scor_Mic.csv', headers, rows);
   };
 
   return (
