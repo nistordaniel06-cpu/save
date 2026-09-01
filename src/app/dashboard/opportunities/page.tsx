@@ -5,14 +5,16 @@ import { useSave } from '@/lib/context';
 import { calculateSavingsSummary } from '@/lib/analytics/savings-calculator';
 import { OpportunityCard } from '@/components/opportunities/opportunity-card';
 import { StatCard } from '@/components/ui/stat-card';
-import { Badge } from '@/components/ui/badge';
-import { Sparkles, TrendingDown, ShieldCheck, CheckCircle2, Filter } from 'lucide-react';
+import { Sparkles, TrendingDown, ShieldCheck, CheckCircle2, Filter, FileSearch } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { OpportunityConfidence, OpportunityProvenance } from '@/lib/types';
+import { ProposalAnalyzerModal } from '@/components/opportunities/proposal-analyzer-modal';
 
 export default function OpportunitiesPage() {
   const { opportunities, verifiedSavings } = useSave();
   const [selectedConfidence, setSelectedConfidence] = useState<string>('all');
   const [selectedProvenance, setSelectedProvenance] = useState<string>('all');
+  const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
 
   const savingsSummary = calculateSavingsSummary(opportunities, verifiedSavings);
 
@@ -25,15 +27,32 @@ export default function OpportunitiesPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="pb-2 border-b border-zinc-200">
-        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2.5">
-          <Sparkles className="w-6 h-6 text-emerald-600" />
-          <span>Oportunități de Economisire & Recomandări Inteligente</span>
-        </h1>
-        <p className="text-xs text-zinc-500 mt-1">
-          Identificate automat prin compararea prețurilor tale cu benchmark-urile reale B2B din România. Proveniența fiecărui calcul este 100% transparentă.
-        </p>
+      <div className="pb-2 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2.5">
+            <Sparkles className="w-6 h-6 text-emerald-600" />
+            <span>Oportunități de Economisire & Recomandări Inteligente</span>
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Identificate automat prin compararea prețurilor tale cu benchmark-urile reale B2B din România. Proveniența fiecărui calcul este 100% transparentă.
+          </p>
+        </div>
+
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setIsProposalModalOpen(true)}
+          className="shrink-0 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+        >
+          <FileSearch className="w-4 h-4" />
+          <span>Verifică Ofertă Nouă (Proposal Agent)</span>
+        </Button>
       </div>
+
+      <ProposalAnalyzerModal
+        isOpen={isProposalModalOpen}
+        onClose={() => setIsProposalModalOpen(false)}
+      />
 
       {/* Summary KPI row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
