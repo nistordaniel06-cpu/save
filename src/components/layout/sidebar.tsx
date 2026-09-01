@@ -103,8 +103,8 @@ export function Sidebar() {
               <Building2 className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div className="truncate">
-              <p className="text-xs font-semibold text-zinc-100 truncate">{currentOrg.name}</p>
-              <p className="text-[10px] text-zinc-400 font-mono truncate">{currentOrg.cui || 'Fără CIF'}</p>
+              <p className="text-xs font-semibold text-zinc-100 truncate" suppressHydrationWarning>{currentOrg.name}</p>
+              <p className="text-[10px] text-zinc-400 font-mono truncate" suppressHydrationWarning>{currentOrg.cui || 'Fără CIF'}</p>
             </div>
           </div>
           <ChevronDown className="w-4 h-4 text-zinc-400 shrink-0" />

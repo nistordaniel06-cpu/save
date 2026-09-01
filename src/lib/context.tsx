@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { 
   AppState, 
   getInitialState, 
+  getSavedState,
   saveState, 
   resetDemoState 
 } from './store';
@@ -281,6 +282,10 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
 
   // Sync Supabase Auth session on mount and listen to changes
   useEffect(() => {
+    const saved = getSavedState();
+    if (saved) {
+      setState(saved);
+    }
     setIsHydrated(true);
 
     supabase.auth.getUser().then(({ data: { user } }) => {

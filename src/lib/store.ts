@@ -43,7 +43,7 @@ export interface AppState {
 
 const STORAGE_KEY = 'save_platform_state_v1';
 
-export function getInitialState(): AppState {
+export function getSavedState(): AppState | null {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -54,7 +54,10 @@ export function getInitialState(): AppState {
       }
     }
   }
+  return null;
+}
 
+export function getDefaultState(): AppState {
   return {
     currentOrg: DEMO_ORG,
     currentUser: DEMO_USER,
@@ -125,11 +128,13 @@ export function saveState(state: AppState) {
   }
 }
 
+export const getInitialState = getDefaultState;
+
 export function resetDemoState(): AppState {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(STORAGE_KEY);
   }
-  const fresh = getInitialState();
+  const fresh = getDefaultState();
   saveState(fresh);
   return fresh;
 }

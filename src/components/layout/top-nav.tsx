@@ -35,7 +35,7 @@ export function TopNav() {
         {/* Left: Organization context & Badge */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-zinc-900 text-sm tracking-tight">
+            <span className="font-semibold text-zinc-900 text-sm tracking-tight" suppressHydrationWarning>
               {currentOrg.name}
             </span>
             {currentOrg.isDemo && (
@@ -45,7 +45,7 @@ export function TopNav() {
             )}
           </div>
           <span className="text-zinc-300">/</span>
-          <span className="text-xs text-zinc-500 font-mono">
+          <span className="text-xs text-zinc-500 font-mono" suppressHydrationWarning>
             {currentOrg.industry}
           </span>
         </div>
@@ -85,8 +85,8 @@ export function TopNav() {
               {currentUser.fullName.split(' ').map(n => n[0]).join('')}
             </div>
             <div className="hidden lg:block text-left">
-              <p className="text-xs font-semibold text-zinc-900 leading-tight">{currentUser.fullName}</p>
-              <p className="text-[10px] text-zinc-500 font-mono leading-none">{currentUser.role || 'CFO'}</p>
+              <p className="text-xs font-semibold text-zinc-900 leading-tight" suppressHydrationWarning>{currentUser.fullName}</p>
+              <p className="text-[10px] text-zinc-500 font-mono leading-none" suppressHydrationWarning>{currentUser.role || 'CFO'}</p>
             </div>
             {supabaseUser && (
               <button
