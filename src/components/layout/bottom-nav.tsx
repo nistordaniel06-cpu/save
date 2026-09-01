@@ -16,33 +16,35 @@ import { useSave } from '@/lib/context';
 export function BottomNav() {
   const pathname = usePathname();
   const { opportunities } = useSave();
-  const openOppsCount = opportunities.filter(o => o.status === 'open').length;
+  const openOppsCount = opportunities.filter((o) => o.status === 'open').length;
+
+  const basePath = pathname?.startsWith('/demo') ? '/demo' : '/dashboard';
 
   const items = [
     {
       label: 'Tablou',
-      href: '/dashboard',
+      href: basePath,
       icon: LayoutDashboard,
     },
     {
       label: 'Pools',
-      href: '/dashboard/demand',
+      href: `${basePath}/demand`,
       icon: Users,
     },
     {
       label: 'Cheltuieli',
-      href: '/dashboard/spend',
+      href: `${basePath}/spend`,
       icon: PieChart,
     },
     {
       label: 'Economii',
-      href: '/dashboard/opportunities',
+      href: `${basePath}/opportunities`,
       icon: Sparkles,
       badge: openOppsCount > 0 ? openOppsCount : undefined,
     },
     {
       label: 'Documente',
-      href: '/dashboard/documents',
+      href: `${basePath}/documents`,
       icon: FileText,
     },
   ];

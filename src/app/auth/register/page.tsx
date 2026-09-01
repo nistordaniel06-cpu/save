@@ -150,7 +150,7 @@ function RegisterContent() {
             </Button>
           </form>
 
-          <div className="pt-2 text-center text-xs text-zinc-500">
+          <div className="pt-2 text-center text-xs text-zinc-500 border-t border-zinc-100">
             <span>Ai deja un cont? </span>
             <Link href="/auth/login" className="font-semibold text-zinc-900 hover:underline">
               Autentifică-te
@@ -158,7 +158,14 @@ function RegisterContent() {
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-zinc-400 font-mono">
+        <div className="mt-5 text-center text-xs text-zinc-500">
+          <span>Vrei doar să testezi fără cont? </span>
+          <Link href="/demo" className="font-semibold text-emerald-600 hover:underline">
+            Vezi demo
+          </Link>
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-zinc-400 font-mono">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>Securizat prin Supabase Row-Level Security</span>
         </div>

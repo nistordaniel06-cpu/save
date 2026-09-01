@@ -76,42 +76,6 @@ function LoginContent() {
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md px-2 sm:px-0">
         <div className="bg-white py-6 sm:py-8 px-4 sm:px-6 shadow-xl rounded-2xl border border-zinc-200 space-y-5 sm:space-y-6">
-          {/* Quick Demo Access Button */}
-          <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-2">
-            <div className="flex items-center justify-between font-bold text-emerald-950">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-emerald-600" />
-                <span>Acces Rapid Demo</span>
-              </span>
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-emerald-200/60 text-emerald-900 font-semibold">
-                1-Click
-              </span>
-            </div>
-            <p className="text-emerald-800 text-[11px]">
-              Intră direct ca <strong>Director Financiar</strong> în organizația <strong>Nova Retail SRL</strong> pentru a explora platforma.
-            </p>
-            <Button
-              type="button"
-              variant="emerald"
-              size="sm"
-              onClick={handleDemoLogin}
-              isLoading={isLoading}
-              className="w-full font-bold gap-1.5"
-            >
-              <span>Intră cu contul Demo Nova Retail</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-200" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-zinc-400 font-mono text-[10px]">sau autentificare cu credențiale</span>
-            </div>
-          </div>
-
           {errorMsg && (
             <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
@@ -173,7 +137,7 @@ function LoginContent() {
             </Button>
           </form>
 
-          <div className="pt-2 text-center text-xs text-zinc-500">
+          <div className="pt-2 text-center text-xs text-zinc-500 border-t border-zinc-100">
             <span>Nu ai încă un cont pentru companie? </span>
             <Link href="/auth/register" className="font-semibold text-zinc-900 hover:underline">
               Creează cont nou
@@ -181,7 +145,14 @@ function LoginContent() {
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-zinc-400 font-mono">
+        <div className="mt-5 text-center text-xs text-zinc-500">
+          <span>Vrei doar să vezi platforma? </span>
+          <Link href="/demo" className="font-semibold text-emerald-600 hover:underline">
+            Deschide demo
+          </Link>
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-zinc-400 font-mono">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>Sesiune Criptată TLS 1.3 • Supabase Auth</span>
         </div>

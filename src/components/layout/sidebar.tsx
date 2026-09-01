@@ -39,51 +39,54 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
     ? totalCalculatedSpend * (spendRecords.length >= 6 ? 2 : 12) 
     : (currentOrg.isDemo ? 428500 : 0);
 
+  const isDemo = pathname.startsWith('/demo') || currentOrg.isDemo;
+  const basePath = pathname.startsWith('/demo') ? '/demo' : '/dashboard';
+
   const saveScoreData = calculateSaveScore(totalAnnualSpend, contracts, opportunities);
 
   const navItems = [
     {
       label: 'Prezentare Generală',
-      href: '/dashboard',
+      href: basePath,
       icon: LayoutDashboard,
       badge: undefined,
     },
     {
       label: 'Putere de Cumpărare',
-      href: '/dashboard/demand',
+      href: `${basePath}/demand`,
       icon: Users,
       badge: 'Demand Pools',
       badgeVariant: 'purple' as const,
     },
     {
       label: 'Analiză Cheltuieli',
-      href: '/dashboard/spend',
+      href: `${basePath}/spend`,
       icon: PieChart,
       badge: totalAnnualSpend > 0 ? `${Math.round(totalAnnualSpend / 1000)}k lei` : undefined,
     },
     {
       label: 'Oportunități Economii',
-      href: '/dashboard/opportunities',
+      href: `${basePath}/opportunities`,
       icon: Sparkles,
-      badge: `${opportunities.filter(o => o.status === 'open').length}`,
+      badge: `${opportunities.filter((o) => o.status === 'open').length}`,
       badgeVariant: 'warning' as const,
     },
     {
       label: 'Documente & Extracție',
-      href: '/dashboard/documents',
+      href: `${basePath}/documents`,
       icon: FileText,
       badge: undefined,
     },
     {
       label: 'Contracte & Reînnoiri',
-      href: '/dashboard/contracts',
+      href: `${basePath}/contracts`,
       icon: FileCheck,
-      badge: `${contracts.filter(c => c.status === 'in_renewal_window').length} active`,
+      badge: `${contracts.filter((c) => c.status === 'in_renewal_window').length} active`,
       badgeVariant: 'danger' as const,
     },
     {
       label: 'Cereri Optimizare',
-      href: '/dashboard/requests',
+      href: `${basePath}/requests`,
       icon: ArrowRightLeft,
       badge: undefined,
     },
@@ -270,19 +273,32 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
 
       {/* Footer Controls */}
       <div className="p-3 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
-        <button
-          onClick={resetToDemo}
-          title="Reîncarcă datele demo Nova Retail SRL"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer text-[11px]"
-        >
-          <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
-          <span>Reset Demo</span>
-        </button>
-
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-mono text-zinc-400">RLS Protejat</span>
-        </div>
+        {isDemo ? (
+          <>
+            <button
+              onClick={resetToDemo}
+              title="Reîncarcă datele demo Nova Retail SRL"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer text-[11px]"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Reset Demo</span>
+            </button>
+            <Link
+              href="/"
+              className="text-[11px] text-amber-400 hover:text-amber-300 font-medium"
+            >
+              Ieși din demo →
+            </Link>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Supabase Sync</span>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-500">RLS Protejat</span>
+          </>
+        )}
       </div>
     </div>
   );

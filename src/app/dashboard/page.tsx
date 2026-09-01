@@ -35,7 +35,18 @@ export default function DashboardPage() {
   const scoreData = calculateSaveScore(spendSummary.totalAnnualSpendRon, contracts, opportunities);
 
   const isDemo = currentOrg.isDemo;
-  const hasRealData = documents.length > 0 || contracts.length > 0;
+  const hasRealData = (documents && documents.length > 0) || (contracts && contracts.length > 0) || (spendRecords && spendRecords.length > 0);
+
+  const saveScoreDisplay = hasRealData ? `${scoreData.totalScore}/100` : '—';
+  const saveScoreSubtitle = hasRealData ? `Grad ${scoreData.grade} • Sănătate Achiziții` : 'Date insuficiente pentru calcul';
+  
+  const spendDisplay = `${spendSummary.totalAnnualSpendRon.toLocaleString('ro-RO')} lei`;
+  const spendSubtitle = `${spendSummary.monthlyRunRateRon.toLocaleString('ro-RO')} lei / lună`;
+  
+  const savingsDisplay = hasRealData && savingsSummary.estimatedSavingsMidpointRon > 0 
+    ? `${savingsSummary.estimatedSavingsMidpointRon.toLocaleString('ro-RO')} lei` 
+    : '—';
+  const savingsSubtitle = hasRealData ? 'Identificat comparativ cu piața' : 'Necesită documente pentru audit';
 
   return (
     <div className="space-y-8">
@@ -48,15 +59,15 @@ export default function DashboardPage() {
               <strong>Mod Demonstrativ Activ (Nova Retail SRL):</strong> Date simulate de achiziții pentru prezentare.
             </span>
           </div>
-          <Link href="/onboarding" className="font-semibold underline text-amber-950 hover:text-amber-800">
-            Adaugă Organizația Ta Reală →
+          <Link href="/auth/register" className="font-semibold underline text-amber-950 hover:text-amber-800">
+            Creează Organizația Ta Reală →
           </Link>
         </div>
       ) : !hasRealData ? (
-        <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <p className="text-sm font-bold text-emerald-950">
-              Bine ai venit în {currentOrg.name}! Organizația ta este securizată cu Supabase RLS.
+              Bine ai venit în {currentOrg.name || 'organizația ta'}! Contul tău este securizat prin Supabase RLS.
             </p>
             <p className="text-emerald-800 text-[11px]">
               Nu există încă documente sau facturi încărcate. Datele tale financiare vor apărea aici imediat după prima încărcare.
@@ -65,7 +76,7 @@ export default function DashboardPage() {
           <Link href="/dashboard/documents" className="shrink-0">
             <Button size="sm" variant="emerald" className="gap-1.5 font-bold shadow-xs">
               <Upload className="w-3.5 h-3.5" />
-              <span>Încarcă Primele Documente</span>
+              <span>Încarcă Documente</span>
             </Button>
           </Link>
         </div>
@@ -88,7 +99,7 @@ export default function DashboardPage() {
             Tablou de Bord Achiziții & Economii
           </h1>
           <p className="text-xs text-zinc-500 mt-1">
-            Organizație: <strong className="text-zinc-800">{currentOrg.name}</strong> • Analiză automată a facturilor și contractelor B2B.
+            Organizație: <strong className="text-zinc-800">{currentOrg.name || 'Companie'}</strong> • Analiză automată a facturilor și contractelor B2B.
           </p>
         </div>
 
@@ -113,8 +124,8 @@ export default function DashboardPage() {
         {/* 1. SAVE Score */}
         <StatCard
           title="SAVE Score"
-          value={`${scoreData.totalScore}/100`}
-          subtitle={`Grad ${scoreData.grade} • Sănătate Achiziții`}
+          value={saveScoreDisplay}
+          subtitle={saveScoreSubtitle}
           badgeText="Inteligență"
           badgeVariant="purple"
           icon={Zap}
@@ -124,8 +135,8 @@ export default function DashboardPage() {
         {/* 2. Annual Spend Analysed */}
         <StatCard
           title="Cheltuieli Analizate"
-          value={`${spendSummary.totalAnnualSpendRon.toLocaleString('ro-RO')} lei`}
-          subtitle={`${spendSummary.monthlyRunRateRon.toLocaleString('ro-RO')} lei / lună`}
+          value={spendDisplay}
+          subtitle={spendSubtitle}
           badgeText="Anualizat"
           badgeVariant="default"
           icon={DollarSign}
@@ -134,8 +145,8 @@ export default function DashboardPage() {
         {/* 3. Potential Savings (Clearly labeled as ESTIMATED) */}
         <StatCard
           title="Economii Potențiale"
-          value={`${savingsSummary.estimatedSavingsMidpointRon.toLocaleString('ro-RO')} lei`}
-          subtitle="Identificat comparativ cu piața"
+          value={savingsDisplay}
+          subtitle={savingsSubtitle}
           badgeText="ESTIMAT"
           badgeVariant="warning"
           icon={TrendingDown}
@@ -172,6 +183,61 @@ export default function DashboardPage() {
           icon={AlertTriangle}
         />
       </div>
+
+      {/* Onboarding Empty State Card for Brand New Real Accounts */}
+      {!hasRealData && !isDemo && (
+        <div className="p-6 sm:p-8 rounded-2xl bg-white border border-zinc-200 shadow-md space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-100">
+            <div className="space-y-1.5 max-w-xl">
+              <Badge variant="success" size="sm">Pasul Următor</Badge>
+              <h2 className="text-xl font-bold text-zinc-900 tracking-tight">
+                Încarcă prima factură sau primul contract
+              </h2>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                După procesarea documentelor, SAVE va începe să construiască profilul de cheltuieli al companiei tale și va calcula potențialul real de economisire.
+              </p>
+            </div>
+            <Link href="/dashboard/documents" className="shrink-0">
+              <Button size="lg" variant="emerald" className="gap-2 font-bold shadow-md shadow-emerald-500/20">
+                <Upload className="w-4 h-4" />
+                <span>Încarcă Documente</span>
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-1.5">
+              <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-900 font-bold font-mono text-[11px] flex items-center justify-center">
+                1
+              </div>
+              <h3 className="font-semibold text-zinc-900">Extracție Documente</h3>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Încarcă facturi PDF sau XML e-Factura. Datele sunt parsate automat cu acuratețe strictă.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-1.5">
+              <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-900 font-bold font-mono text-[11px] flex items-center justify-center">
+                2
+              </div>
+              <h3 className="font-semibold text-zinc-900">Calcul SAVE Score</h3>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Generăm analiza de conformitate, acoperire contractuală și radarul de preaviz.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-1.5">
+              <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-900 font-bold font-mono text-[11px] flex items-center justify-center">
+                3
+              </div>
+              <h3 className="font-semibold text-zinc-900">Oportunități de Economii</h3>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Descoperi tarife benchmark mai bune și poți activa licitații agregate în Demand Pools.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SAVE Score Deep-Dive Gauge */}
       <SaveScoreCard scoreData={scoreData} />

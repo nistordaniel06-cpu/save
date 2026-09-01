@@ -59,34 +59,32 @@ export interface AppState {
   clientOffers: ClientOffer[];
 }
 
-const STORAGE_KEY = 'save_platform_state_v1';
+export const EMPTY_ORG_PLACEHOLDER: Organization = {
+  id: '',
+  name: '',
+  cui: '',
+  registrationNumber: '',
+  industry: 'Servicii & B2B',
+  employeeRange: '1-9',
+  monthlyOpexRon: 0,
+  saveScore: 0,
+  isDemo: false,
+  currency: 'RON',
+  createdAt: '',
+};
 
-export function getSavedState(): AppState | null {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const defaults = getDefaultState();
-        return {
-          ...defaults,
-          ...parsed,
-          verifiedDemands: parsed.verifiedDemands || defaults.verifiedDemands,
-          demandPools: parsed.demandPools || defaults.demandPools,
-          demandPoolMembers: parsed.demandPoolMembers || defaults.demandPoolMembers,
-          marketplaceSuppliers: parsed.marketplaceSuppliers || defaults.marketplaceSuppliers,
-          supplierBids: parsed.supplierBids || defaults.supplierBids,
-          clientOffers: parsed.clientOffers || defaults.clientOffers,
-        };
-      } catch (e) {
-        console.error('Failed to parse saved SAVE state', e);
-      }
-    }
-  }
-  return null;
-}
+export const EMPTY_USER_PLACEHOLDER: Profile = {
+  id: '',
+  email: '',
+  fullName: '',
+  role: 'Director Financiar (Owner)',
+  createdAt: '',
+};
 
-export function getDefaultState(): AppState {
+const DEMO_STORAGE_KEY = 'save_platform_demo_state_v2';
+const REAL_STORAGE_KEY = 'save_platform_real_state_v2';
+
+export function getDefaultDemoState(): AppState {
   return {
     currentOrg: DEMO_ORG,
     currentUser: DEMO_USER,
@@ -157,19 +155,121 @@ export function getDefaultState(): AppState {
   };
 }
 
-export function saveState(state: AppState) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
+export function getEmptyRealState(user?: { id: string; email: string; fullName?: string }): AppState {
+  return {
+    currentOrg: EMPTY_ORG_PLACEHOLDER,
+    currentUser: user
+      ? {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName || user.email.split('@')[0],
+          role: 'Director Financiar (Owner)',
+          createdAt: new Date().toISOString(),
+        }
+      : EMPTY_USER_PLACEHOLDER,
+    organizations: [],
+    suppliers: [],
+    contracts: [],
+    documents: [],
+    opportunities: [],
+    spendRecords: [],
+    optimizationRequests: [],
+    verifiedSavings: [],
+    benchmarks: [],
+    auditLogs: [],
+    verifiedDemands: [],
+    demandPools: [],
+    demandPoolMembers: [],
+    marketplaceSuppliers: [],
+    supplierBids: [],
+    clientOffers: [],
+  };
 }
 
-export const getInitialState = getDefaultState;
+function getStorage(): Storage | null {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage;
+  }
+  if (typeof globalThis !== 'undefined' && (globalThis as any).localStorage) {
+    return (globalThis as any).localStorage;
+  }
+  return null;
+}
+
+export function getSavedDemoState(): AppState | null {
+  const storage = getStorage();
+  if (storage) {
+    const saved = storage.getItem(DEMO_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const defaults = getDefaultDemoState();
+        return {
+          ...defaults,
+          ...parsed,
+          verifiedDemands: parsed.verifiedDemands || defaults.verifiedDemands,
+          demandPools: parsed.demandPools || defaults.demandPools,
+          demandPoolMembers: parsed.demandPoolMembers || defaults.demandPoolMembers,
+          marketplaceSuppliers: parsed.marketplaceSuppliers || defaults.marketplaceSuppliers,
+          supplierBids: parsed.supplierBids || defaults.supplierBids,
+          clientOffers: parsed.clientOffers || defaults.clientOffers,
+        };
+      } catch (e) {
+        console.error('Failed to parse saved SAVE demo state', e);
+      }
+    }
+  }
+  return null;
+}
+
+export function saveDemoState(state: AppState) {
+  const storage = getStorage();
+  if (storage) {
+    storage.setItem(DEMO_STORAGE_KEY, JSON.stringify(state));
+  }
+}
 
 export function resetDemoState(): AppState {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(STORAGE_KEY);
+  const storage = getStorage();
+  if (storage) {
+    storage.removeItem(DEMO_STORAGE_KEY);
   }
-  const fresh = getDefaultState();
-  saveState(fresh);
+  const fresh = getDefaultDemoState();
+  saveDemoState(fresh);
   return fresh;
 }
+
+export function getSavedRealState(): AppState | null {
+  const storage = getStorage();
+  if (storage) {
+    const saved = storage.getItem(REAL_STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved SAVE real state', e);
+      }
+    }
+  }
+  return null;
+}
+
+export function saveRealState(state: AppState) {
+  const storage = getStorage();
+  if (storage) {
+    storage.setItem(REAL_STORAGE_KEY, JSON.stringify(state));
+  }
+}
+
+export function clearRealState() {
+  const storage = getStorage();
+  if (storage) {
+    storage.removeItem(REAL_STORAGE_KEY);
+  }
+}
+
+// Backward compatibility helpers
+export const getDefaultState = getDefaultDemoState;
+export const getInitialState = getEmptyRealState;
+export const getSavedState = getSavedRealState;
+export const saveState = saveRealState;

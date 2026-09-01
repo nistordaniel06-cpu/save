@@ -21,9 +21,11 @@ interface TopNavProps {
 }
 
 export function TopNav({ onOpenMobileMenu }: TopNavProps) {
-  const { currentOrg, currentUser, resetToDemo, supabaseUser, signOut } = useSave();
+  const { currentOrg, currentUser, resetToDemo, supabaseUser, signOut, isDemoMode } = useSave();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [showDemoToast, setShowDemoToast] = useState(false);
+
+  const isDemo = Boolean(isDemoMode || currentOrg.isDemo);
 
   const handleResetDemo = () => {
     resetToDemo();
@@ -48,37 +50,50 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
 
           <div className="flex items-center gap-1.5 sm:gap-2 truncate max-w-[140px] sm:max-w-none">
             <span className="font-semibold text-zinc-900 text-xs sm:text-sm tracking-tight truncate" suppressHydrationWarning>
-              {currentOrg.name}
+              {currentOrg.name || 'Organizație'}
             </span>
-            {currentOrg.isDemo && (
-              <Badge variant="subtle" size="sm" className="hidden sm:inline-flex">
-                Demo
+            {isDemo ? (
+              <Badge variant="warning" size="sm" className="hidden sm:inline-flex">
+                Mod Demo
+              </Badge>
+            ) : (
+              <Badge variant="success" size="sm" className="hidden sm:inline-flex">
+                Organizație Reală
               </Badge>
             )}
           </div>
           <span className="text-zinc-300 hidden sm:inline">/</span>
           <span className="text-xs text-zinc-500 font-mono hidden sm:inline" suppressHydrationWarning>
-            {currentOrg.industry}
+            {currentOrg.industry || 'B2B'}
           </span>
         </div>
 
         {/* Right: Actions, Quick Upload, and User Nav */}
         <div className="flex items-center gap-1.5 sm:gap-3">
-          {/* Security Indicator */}
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-medium text-emerald-800">
-            <Shield className="w-3.5 h-3.5 text-emerald-600" />
-            <span>GDPR & RLS Activ</span>
-          </div>
+          {isDemo ? (
+            <>
+              {/* Reset Demo Trigger */}
+              <button
+                onClick={handleResetDemo}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors border border-zinc-200 cursor-pointer"
+                title="Reinițializează starea demo"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Demo</span>
+              </button>
 
-          {/* Reset Demo Trigger */}
-          <button
-            onClick={handleResetDemo}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors border border-zinc-200 cursor-pointer"
-            title="Reinițializează starea demo"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Demo</span>
-          </button>
+              <Link href="/auth/register">
+                <Button size="sm" variant="emerald" className="text-xs font-semibold">
+                  Creează cont real
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-medium text-emerald-800">
+              <Shield className="w-3.5 h-3.5 text-emerald-600" />
+              <span>GDPR & RLS Activ</span>
+            </div>
+          )}
 
           {/* Quick Upload CTA */}
           <Button
@@ -95,11 +110,11 @@ export function TopNav({ onOpenMobileMenu }: TopNavProps) {
           {/* User Profile Pill & Logout */}
           <div className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-2 border-l border-zinc-200">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-semibold text-xs border border-zinc-800">
-              {currentUser.fullName.split(' ').map(n => n[0]).join('')}
+              {(currentUser?.fullName || 'Utilizator').split(' ').map(n => n[0]).join('')}
             </div>
             <div className="hidden lg:block text-left">
-              <p className="text-xs font-semibold text-zinc-900 leading-tight" suppressHydrationWarning>{currentUser.fullName}</p>
-              <p className="text-[10px] text-zinc-500 font-mono leading-none" suppressHydrationWarning>{currentUser.role || 'CFO'}</p>
+              <p className="text-xs font-semibold text-zinc-900 leading-tight" suppressHydrationWarning>{currentUser?.fullName || 'Utilizator'}</p>
+              <p className="text-[10px] text-zinc-500 font-mono leading-none" suppressHydrationWarning>{currentUser?.role || 'Owner'}</p>
             </div>
             {supabaseUser && (
               <button

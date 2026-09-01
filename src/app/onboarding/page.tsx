@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Building2, Sparkles, ShieldCheck, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { SaveProvider, useSave } from '@/lib/context';
 import { SpendCategory } from '@/lib/types';
+import { supabase } from '@/lib/supabase/client';
 
 function OnboardingContent() {
   const router = useRouter();
@@ -25,6 +26,15 @@ function OnboardingContent() {
     'Energie',
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.replace('/auth/register');
+      }
+    });
+  }, [router]);
 
   const toggleCategory = (cat: SpendCategory) => {
     if (selectedCategories.includes(cat)) {
@@ -36,21 +46,27 @@ function OnboardingContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!companyName.trim()) {
+      setErrorMsg('Te rugăm să introduci denumirea companiei.');
+      return;
+    }
+
     setIsLoading(true);
+    setErrorMsg(null);
 
     try {
-      const newOrg = await createOrganization({
-        name: companyName || 'Companie Client SRL',
-        cui: cui || 'RO 00000000',
+      await createOrganization({
+        name: companyName.trim(),
+        cui: cui.trim() || undefined,
         industry,
         employeeRange,
         monthlyOpexRon: Number(monthlyOpexRon),
       });
 
       router.push('/dashboard');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create organization:', err);
-      router.push('/dashboard');
+      setErrorMsg(err?.message || 'Eroare la crearea organizației. Reîncearcă.');
     } finally {
       setIsLoading(false);
     }
@@ -76,18 +92,24 @@ function OnboardingContent() {
         </Link>
         <div className="flex items-center justify-center gap-1.5 text-xs font-mono text-emerald-700">
           <Clock className="w-3.5 h-3.5" />
-          <span>Configurare rapidă • Sub 2 minute</span>
+          <span>Configurare cont real • Sub 2 minute</span>
         </div>
         <h1 className="text-xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
           Înrolează Organizația în SAVE
         </h1>
         <p className="text-xs text-zinc-500 max-w-md mx-auto">
-          Completează profilul de achiziții pentru a calibra benchmark-urile de preț aplicabile companiei tale.
+          Configurează profilul companiei pentru a calibra benchmark-urile de preț aplicabile cheltuielilor tale reale.
         </p>
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
         <div className="bg-white py-6 sm:py-8 px-4 sm:px-8 shadow-xl rounded-2xl border border-zinc-200 space-y-5 sm:space-y-6">
+          {errorMsg && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800">
+              {errorMsg}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5 text-xs">
             {/* Company Name & CUI */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -118,7 +140,7 @@ function OnboardingContent() {
             {/* Industry & Employees */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="font-semibold text-zinc-700">Industrie Principală</label>
+                <label className="font-semibold text-zinc-700">Industrie Principală *</label>
                 <select
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
@@ -135,7 +157,7 @@ function OnboardingContent() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-zinc-700">Număr Angajați</label>
+                <label className="font-semibold text-zinc-700">Număr Angajați *</label>
                 <select
                   value={employeeRange}
                   onChange={(e) => setEmployeeRange(e.target.value)}
@@ -153,7 +175,7 @@ function OnboardingContent() {
             <div className="space-y-2 pt-2 border-t border-zinc-100">
               <div className="flex justify-between items-center">
                 <label className="font-semibold text-zinc-700">
-                  Cheltuieli Lunare Estimative (OPEX)
+                  Cheltuieli Lunare Estimative (OPEX - Opțional)
                 </label>
                 <span className="font-mono font-bold text-zinc-900">
                   {monthlyOpexRon.toLocaleString('ro-RO')} lei / lună
@@ -173,7 +195,7 @@ function OnboardingContent() {
             {/* Major Categories Checkboxes */}
             <div className="space-y-2 pt-2 border-t border-zinc-100">
               <label className="font-semibold text-zinc-700 block">
-                Categorii Majore de Cheltuieli de Optimizat
+                Categorii Majore de Cheltuieli de Optimizat (Opțional)
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {categories.map((cat) => {
@@ -197,19 +219,15 @@ function OnboardingContent() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 flex items-center justify-between">
-              <Link href="/dashboard" className="text-zinc-500 hover:text-zinc-900 font-medium">
-                Sari peste și deschide Demo →
-              </Link>
-
+            <div className="pt-4 border-t border-zinc-100 flex items-center justify-end">
               <Button
                 type="submit"
                 variant="emerald"
                 size="md"
                 isLoading={isLoading}
-                className="gap-2 font-bold"
+                className="w-full sm:w-auto gap-2 font-bold shadow-md shadow-emerald-500/20"
               >
-                <span>Finalizează & Deschide Tabloul de Bord</span>
+                <span>Finalizează Înrolarea & Deschide Tabloul de Bord</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>

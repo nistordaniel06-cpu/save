@@ -58,15 +58,19 @@ export default function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/demo">
+              <Button size="sm" variant="ghost" className="text-xs px-2.5 sm:px-3 text-zinc-700 hover:text-zinc-950">
+                Vezi demo
+              </Button>
+            </Link>
             <Link href="/auth/login">
-              <Button size="sm" variant="ghost" className="text-xs px-2.5 sm:px-3">
+              <Button size="sm" variant="outline" className="text-xs px-2.5 sm:px-3">
                 Autentificare
               </Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/auth/register">
               <Button size="sm" variant="primary" className="text-xs gap-1.5 shadow-sm px-2.5 sm:px-3">
-                <span className="hidden sm:inline">Deschide Demo Nova Retail</span>
-                <span className="sm:hidden">Demo</span>
+                <span>Creează cont</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </Link>
@@ -90,18 +94,18 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 sm:pt-4">
-          <Link href="/onboarding" className="w-full sm:w-auto">
+          <Link href="/auth/register" className="w-full sm:w-auto">
             <Button size="lg" variant="emerald" className="w-full sm:w-auto text-sm sm:text-base gap-2 px-6 sm:px-8 h-12 shadow-lg shadow-emerald-500/20">
               <Sparkles className="w-4 h-4" />
               <span>Analizează-mi costurile</span>
             </Button>
           </Link>
 
-          <a href="#how-it-works" className="w-full sm:w-auto">
+          <Link href="/demo" className="w-full sm:w-auto">
             <Button size="lg" variant="outline" className="w-full sm:w-auto text-sm sm:text-base h-12 px-6 sm:px-8">
-              Vezi cum funcționează
+              Vezi demo
             </Button>
-          </a>
+          </Link>
         </div>
 
         <div className="pt-6 flex flex-wrap items-center justify-center gap-6 text-xs text-zinc-500 font-medium">
@@ -192,9 +196,9 @@ export default function LandingPage() {
                 *Calculat pe o reducere medie observată de 8–12% fără schimbarea calității serviciilor.
               </p>
               <div className="pt-2">
-                <Link href="/dashboard">
+                <Link href="/auth/register">
                   <Button size="sm" variant="emerald" className="w-full font-semibold">
-                    Vezi Dashboard Demo Interactiv →
+                    Începe Analiza Gratuită a Companiei Tale →
                   </Button>
                 </Link>
               </div>
@@ -256,7 +260,7 @@ export default function LandingPage() {
             </div>
             <h3 className="text-sm font-bold text-zinc-900">Furnizorii licitează</h3>
             <p className="text-[11px] text-zinc-600 leading-relaxed">
-              Furnizori de top concurează pe volumul total, oferind tarife corporate imposibil de obținut individual.
+              Furnizori de top concurează pe volumul total, oferind tarife corporate calculate pe volum agregat.
             </p>
           </div>
 
@@ -265,9 +269,9 @@ export default function LandingPage() {
             <div className="w-9 h-9 rounded-xl bg-zinc-900 flex items-center justify-center font-mono font-bold text-xs text-white">
               05
             </div>
-            <h3 className="text-sm font-bold text-zinc-900">Semnezi cu economii garantate</h3>
+            <h3 className="text-sm font-bold text-zinc-900">Semnezi cu economii validate</h3>
             <p className="text-[11px] text-zinc-600 leading-relaxed">
-              Primești oferta finală validată, aprobi noul tarif și economisești direct pe cheltuielile lunare.
+              Primești oferta finală verificată, aprobi noul tarif și economisești direct pe cheltuielile lunare.
             </p>
           </div>
         </div>
@@ -384,13 +388,18 @@ export default function LandingPage() {
           Preia controlul asupra achizițiilor companiei tale.
         </h2>
         <p className="text-sm text-zinc-600 max-w-xl mx-auto">
-          Explorează organizația demo „Nova Retail SRL” pentru a vedea cum funcționează platforma SAVE pe date reale din România.
+          Creează contul organizației tale pentru a analiza facturile reale sau explorează platforma prin demo-ul Nova Retail SRL.
         </p>
-        <div className="pt-2">
-          <Link href="/dashboard">
-            <Button size="lg" variant="emerald" className="gap-2 font-bold px-8 h-12 shadow-lg shadow-emerald-500/20">
-              <span>Deschide Tabloul de Bord Demo</span>
-              <ArrowRight className="w-4 h-4" />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <Link href="/auth/register" className="w-full sm:w-auto">
+            <Button size="lg" variant="emerald" className="w-full sm:w-auto gap-2 font-bold px-8 h-12 shadow-lg shadow-emerald-500/20">
+              <Sparkles className="w-4 h-4" />
+              <span>Înrolează Compania Ta</span>
+            </Button>
+          </Link>
+          <Link href="/demo" className="w-full sm:w-auto">
+            <Button size="lg" variant="outline" className="w-full sm:w-auto px-8 h-12">
+              Vezi Demo Nova Retail
             </Button>
           </Link>
         </div>

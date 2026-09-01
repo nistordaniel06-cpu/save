@@ -3,10 +3,16 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { 
   AppState, 
-  getInitialState, 
-  getSavedState,
-  saveState, 
-  resetDemoState 
+  getDefaultDemoState,
+  getEmptyRealState,
+  getSavedDemoState,
+  getSavedRealState,
+  saveDemoState,
+  saveRealState,
+  clearRealState,
+  resetDemoState,
+  EMPTY_ORG_PLACEHOLDER,
+  EMPTY_USER_PLACEHOLDER
 } from './store';
 import { 
   Organization, 
@@ -94,8 +100,19 @@ interface SaveContextType {
 
 const SaveContext = createContext<SaveContextType | null>(null);
 
-export function SaveProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(getInitialState);
+export function SaveProvider({ 
+  children, 
+  isDemoMode = false 
+}: { 
+  children: React.ReactNode; 
+  isDemoMode?: boolean;
+}) {
+  const [state, setState] = useState<AppState>(() => {
+    if (isDemoMode) {
+      return getSavedDemoState() || getDefaultDemoState();
+    }
+    return getSavedRealState() || getEmptyRealState();
+  });
   const [isHydrated, setIsHydrated] = useState(false);
   const [supabaseUser, setSupabaseUser] = useState<any | null>(null);
 
@@ -242,7 +259,11 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
           opportunities: mappedOpps.length > 0 ? mappedOpps : prev.opportunities.filter(o => o.organizationId !== orgId),
           optimizationRequests: mappedReqs.length > 0 ? mappedReqs : prev.optimizationRequests.filter(r => r.organizationId !== orgId),
         };
-        saveState(next);
+        if (isDemoMode) {
+          saveDemoState(next);
+        } else {
+          saveRealState(next);
+        }
         return next;
       });
     } catch (e) {
@@ -251,6 +272,7 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loadUserOrganizations = async (userId: string) => {
+    if (isDemoMode) return;
     try {
       const { data: members, error: memErr } = await supabase
         .from('organization_members')
@@ -258,44 +280,63 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         .eq('user_id', userId);
 
       if (!memErr && members && members.length > 0) {
-        const realOrgs: Organization[] = members.map((m: any) => ({
-          id: m.organizations.id,
-          name: m.organizations.name,
-          cui: m.organizations.cui,
-          registrationNumber: m.organizations.registration_number,
-          industry: m.organizations.industry || 'Servicii & B2B',
-          employeeRange: m.organizations.employee_range || '10-49',
-          monthlyOpexRon: Number(m.organizations.monthly_opex_ron) || 0,
-          saveScore: m.organizations.save_score || 70,
-          isDemo: false,
-          currency: m.organizations.currency || 'RON',
-          createdAt: m.organizations.created_at,
-        }));
+        const realOrgs: Organization[] = members
+          .filter((m: any) => m.organizations && !m.organizations.is_demo)
+          .map((m: any) => ({
+            id: m.organizations.id,
+            name: m.organizations.name,
+            cui: m.organizations.cui,
+            registrationNumber: m.organizations.registration_number,
+            industry: m.organizations.industry || 'Servicii & B2B',
+            employeeRange: m.organizations.employee_range || '10-49',
+            monthlyOpexRon: Number(m.organizations.monthly_opex_ron) || 0,
+            saveScore: m.organizations.save_score || 0,
+            isDemo: false,
+            currency: m.organizations.currency || 'RON',
+            createdAt: m.organizations.created_at,
+          }));
 
+        if (realOrgs.length > 0) {
+          setState((prev) => {
+            const nextCurrent = realOrgs.find((o) => o.id === prev.currentOrg?.id) || realOrgs[0];
+            const next = {
+              ...prev,
+              organizations: realOrgs,
+              currentOrg: nextCurrent,
+              currentUser: {
+                id: userId,
+                email: supabaseUser?.email || prev.currentUser.email,
+                fullName: supabaseUser?.user_metadata?.full_name || prev.currentUser.fullName,
+                role: 'Director Financiar (Owner)',
+                createdAt: new Date().toISOString(),
+              },
+            };
+            saveRealState(next);
+            return next;
+          });
+
+          await fetchOrgDataFromSupabase(realOrgs[0].id);
+        } else {
+          setState((prev) => {
+            const next = {
+              ...prev,
+              organizations: [],
+              currentOrg: EMPTY_ORG_PLACEHOLDER,
+            };
+            saveRealState(next);
+            return next;
+          });
+        }
+      } else {
         setState((prev) => {
-          const allOrgs = [DEMO_ORG, ...realOrgs];
-          // If current was demo or first login, switch to user's real org
-          const nextCurrent = realOrgs[0] || prev.currentOrg;
           const next = {
             ...prev,
-            organizations: allOrgs,
-            currentOrg: nextCurrent,
-            currentUser: {
-              id: userId,
-              email: supabaseUser?.email || prev.currentUser.email,
-              fullName: supabaseUser?.user_metadata?.full_name || prev.currentUser.fullName,
-              role: 'Director Financiar (Owner)',
-              createdAt: new Date().toISOString(),
-            },
+            organizations: [],
+            currentOrg: EMPTY_ORG_PLACEHOLDER,
           };
-          saveState(next);
+          saveRealState(next);
           return next;
         });
-
-        // Load real data for current org
-        if (realOrgs[0]) {
-          await fetchOrgDataFromSupabase(realOrgs[0].id);
-        }
       }
     } catch (e) {
       console.warn('Could not load user organizations from Supabase, using local state:', e);
@@ -304,9 +345,20 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
 
   // Sync Supabase Auth session on mount and listen to changes
   useEffect(() => {
-    const saved = getSavedState();
-    if (saved) {
-      setState(saved);
+    if (isDemoMode) {
+      const savedDemo = getSavedDemoState();
+      if (savedDemo) {
+        setState(savedDemo);
+      } else {
+        setState(getDefaultDemoState());
+      }
+      setIsHydrated(true);
+      return;
+    }
+
+    const savedReal = getSavedRealState();
+    if (savedReal) {
+      setState(savedReal);
     }
     setIsHydrated(true);
 
@@ -314,6 +366,8 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         setSupabaseUser(user);
         loadUserOrganizations(user.id);
+      } else {
+        setSupabaseUser(null);
       }
     });
 
@@ -323,20 +377,23 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         await loadUserOrganizations(session.user.id);
       } else {
         setSupabaseUser(null);
+        setState(getEmptyRealState());
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
-
-
+  }, [isDemoMode]);
 
   const updateState = (updater: (prev: AppState) => AppState) => {
     setState((prev) => {
       const next = updater(prev);
-      saveState(next);
+      if (isDemoMode) {
+        saveDemoState(next);
+      } else {
+        saveRealState(next);
+      }
       return next;
     });
   };
@@ -937,23 +994,30 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetToDemo = () => {
-    const fresh = resetDemoState();
-    setState(fresh);
+    if (isDemoMode) {
+      const fresh = resetDemoState();
+      setState(fresh);
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Sign out error:', e);
+    }
+    clearRealState();
+    setState(getEmptyRealState());
     setSupabaseUser(null);
-    resetToDemo();
   };
 
   const refreshRealData = async () => {
-    if (!state.currentOrg.isDemo) {
+    if (!state.currentOrg.isDemo && state.currentOrg.id) {
       await fetchOrgDataFromSupabase(state.currentOrg.id);
     }
   };
 
-  const isDemoMode = state.currentOrg.isDemo;
+  const isCurrentDemo = Boolean(isDemoMode || state.currentOrg.isDemo);
 
   const joinDemandPool = async (verifiedDemandId: string, demandPoolId: string) => {
     const isRealOrg = !state.currentOrg.isDemo;
@@ -1430,7 +1494,7 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         clientOffers: orgFilteredOffers,
         auditLogs: state.auditLogs,
         isHydrated,
-        isDemoMode,
+        isDemoMode: isCurrentDemo,
         supabaseUser,
         switchOrganization,
         createOrganization,
