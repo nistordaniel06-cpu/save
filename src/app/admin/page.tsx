@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useSave } from '@/lib/context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,9 +54,19 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 text-white text-xs font-mono">
-          <Lock className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Tenant Isolation Enforced</span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/prospects"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Lead Scraper & Firme Scor Mic</span>
+          </Link>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 text-white text-xs font-mono">
+            <Lock className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Tenant Isolation Enforced</span>
+          </div>
         </div>
       </div>
 

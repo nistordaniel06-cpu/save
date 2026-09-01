@@ -70,13 +70,6 @@ export function Sidebar() {
       icon: ArrowRightLeft,
       badge: undefined,
     },
-    {
-      label: 'Prospectare & Lead-uri',
-      href: '/dashboard/prospects',
-      icon: Target,
-      badge: '8 Firme',
-      badgeVariant: 'success' as const,
-    },
   ];
 
   return (

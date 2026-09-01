@@ -14,7 +14,10 @@ export interface CompanyLead {
   topSpendCategories: SpendCategory[];
   estimatedAnnualSavingsMin: number;
   estimatedAnnualSavingsMax: number;
-  opportunityScore: number; // 0 - 100
+  saveScore: number; // 0 - 100 (Scor mic = Eficiență scăzută, risipă mare -> Țintă ideală pentru SAVE!)
+  saveScoreStatus: 'critical' | 'poor' | 'moderate' | 'good';
+  criticalCostLeaks: string[];
+  opportunityScore: number; // 0 - 100 (cât de bun e lead-ul pentru noi)
   phone?: string;
   email?: string;
   website?: string;
@@ -47,16 +50,17 @@ export async function fetchAnafCompanyData(cui: string): Promise<any | null> {
 
 /**
  * Intelligent B2B Lead Generator & Scraper for Romanian SMBs
- * Searches by Industry, City, and Employee Size
+ * Specializing in identifying companies with LOW SAVE SCORES (Critical cost leaks)
  */
 export function scrapeRomanianLeads(filters: {
   industry?: string;
   city?: string;
   county?: string;
   minEmployees?: number;
+  scoreFilter?: 'all' | 'critical' | 'poor' | 'moderate' | 'good';
 }): CompanyLead[] {
   const database: CompanyLead[] = [
-    // 1. E-Commerce & Retail
+    // 1. E-Commerce & Retail - Scor Critic (38%)
     {
       id: 'lead_ro_01',
       cui: 'RO38491024',
@@ -69,14 +73,22 @@ export function scrapeRomanianLeads(filters: {
       estimatedAnnualRevenueRon: 8500000,
       estimatedAnnualOpexRon: 620000,
       topSpendCategories: ['Curierat', 'Consumabile', 'Software'],
-      estimatedAnnualSavingsMin: 32000,
-      estimatedAnnualSavingsMax: 54000,
-      opportunityScore: 94,
+      estimatedAnnualSavingsMin: 34000,
+      estimatedAnnualSavingsMax: 58000,
+      saveScore: 38,
+      saveScoreStatus: 'critical',
+      criticalCostLeaks: [
+        'Curierat la 14.50 lei/colet (+28% peste mediana pieței)',
+        'Contracte cu reînnoire tacită nesupravegheate',
+        'Licențe software neutilizate'
+      ],
+      opportunityScore: 98,
       phone: '+40 722 140 921',
       email: 'contact@smartdist-online.ro',
       website: 'www.smartdist-online.ro',
       status: 'new',
     },
+    // 2. Retail Fashion - Scor Mic (46%)
     {
       id: 'lead_ro_02',
       cui: 'RO41209845',
@@ -89,14 +101,21 @@ export function scrapeRomanianLeads(filters: {
       estimatedAnnualRevenueRon: 4800000,
       estimatedAnnualOpexRon: 390000,
       topSpendCategories: ['Curierat', 'Telecom', 'Consumabile'],
-      estimatedAnnualSavingsMin: 18500,
-      estimatedAnnualSavingsMax: 31000,
-      opportunityScore: 91,
+      estimatedAnnualSavingsMin: 21000,
+      estimatedAnnualSavingsMax: 36000,
+      saveScore: 46,
+      saveScoreStatus: 'critical',
+      criticalCostLeaks: [
+        'Abonamente voce/date nelimitate supraevaluate la 65 lei/SIM',
+        'Clauză de indexare automată fără plafonare'
+      ],
+      opportunityScore: 94,
       phone: '+40 740 882 103',
       email: 'office@nordicfashion.ro',
       website: 'www.nordicfashion.ro',
       status: 'new',
     },
+    // 3. Logistică & Transport - Scor Critic (42%)
     {
       id: 'lead_ro_03',
       cui: 'RO29481023',
@@ -109,14 +128,48 @@ export function scrapeRomanianLeads(filters: {
       estimatedAnnualRevenueRon: 14200000,
       estimatedAnnualOpexRon: 1450000,
       topSpendCategories: ['Energie', 'Telecom', 'Consumabile'],
-      estimatedAnnualSavingsMin: 65000,
-      estimatedAnnualSavingsMax: 110000,
-      opportunityScore: 96,
+      estimatedAnnualSavingsMin: 72000,
+      estimatedAnnualSavingsMax: 125000,
+      saveScore: 42,
+      saveScoreStatus: 'critical',
+      criticalCostLeaks: [
+        'Contract energie electrică la tarif de vârf nerevizuit din 2024',
+        'Flotă de 45 SIM-uri fără agregare de grup'
+      ],
+      opportunityScore: 99,
       phone: '+40 731 990 412',
       email: 'financiar@transilvania-log.ro',
       website: 'www.transilvania-log.ro',
       status: 'new',
     },
+    // 4. Producție & Ambalaje - Scor Mic (51%)
+    {
+      id: 'lead_ro_05',
+      cui: 'RO19840192',
+      name: 'EuroPrint & Packaging Solutions SRL',
+      city: 'Brașov',
+      county: 'Brașov',
+      industry: 'Producție & Ambalaje',
+      caenCode: '1812',
+      employeeRange: '40-80 angajați',
+      estimatedAnnualRevenueRon: 11500000,
+      estimatedAnnualOpexRon: 980000,
+      topSpendCategories: ['Energie', 'Consumabile', 'Curierat'],
+      estimatedAnnualSavingsMin: 48000,
+      estimatedAnnualSavingsMax: 82000,
+      saveScore: 51,
+      saveScoreStatus: 'poor',
+      criticalCostLeaks: [
+        'Furnizor consumabile birou fără discount de volum negociat',
+        'Livrare paleți fără licitație comparativă'
+      ],
+      opportunityScore: 92,
+      phone: '+40 721 445 109',
+      email: 'achizitii@europrint-pack.ro',
+      website: 'www.europrint-pack.ro',
+      status: 'new',
+    },
+    // 5. IT & Software - Scor Mediu (58%)
     {
       id: 'lead_ro_04',
       cui: 'RO35981042',
@@ -131,32 +184,19 @@ export function scrapeRomanianLeads(filters: {
       topSpendCategories: ['Software', 'Telecom', 'Servicii'],
       estimatedAnnualSavingsMin: 28000,
       estimatedAnnualSavingsMax: 46000,
+      saveScore: 58,
+      saveScoreStatus: 'poor',
+      criticalCostLeaks: [
+        'Licențe Cloud redundante (AWS + Azure simultan fără alocare dinamică)',
+        'Abonamente software plătite anual fără audit de utilizatori activi'
+      ],
       opportunityScore: 89,
       phone: '+40 755 330 914',
       email: 'management@apexcloud.ro',
       website: 'www.apexcloud.ro',
       status: 'new',
     },
-    {
-      id: 'lead_ro_05',
-      cui: 'RO19840192',
-      name: 'EuroPrint & Packaging Solutions SRL',
-      city: 'Brașov',
-      county: 'Brașov',
-      industry: 'Producție & Ambalaje',
-      caenCode: '1812',
-      employeeRange: '40-80 angajați',
-      estimatedAnnualRevenueRon: 11500000,
-      estimatedAnnualOpexRon: 980000,
-      topSpendCategories: ['Energie', 'Consumabile', 'Curierat'],
-      estimatedAnnualSavingsMin: 45000,
-      estimatedAnnualSavingsMax: 78000,
-      opportunityScore: 93,
-      phone: '+40 721 445 109',
-      email: 'achizitii@europrint-pack.ro',
-      website: 'www.europrint-pack.ro',
-      status: 'new',
-    },
+    // 6. Farmaceutice - Scor Mediu (64%)
     {
       id: 'lead_ro_06',
       cui: 'RO44810293',
@@ -171,12 +211,18 @@ export function scrapeRomanianLeads(filters: {
       topSpendCategories: ['Curierat', 'Consumabile', 'Telecom'],
       estimatedAnnualSavingsMin: 26000,
       estimatedAnnualSavingsMax: 42000,
-      opportunityScore: 88,
+      saveScore: 64,
+      saveScoreStatus: 'moderate',
+      criticalCostLeaks: [
+        'Servicii de curierat termolabil cu tarife fixe fără discount de frecvență'
+      ],
+      opportunityScore: 86,
       phone: '+40 723 901 884',
       email: 'office@medicapharma-dist.ro',
       website: 'www.medicapharma-dist.ro',
       status: 'new',
     },
+    // 7. Construcții - Scor Critic (45%)
     {
       id: 'lead_ro_07',
       cui: 'RO32910485',
@@ -189,14 +235,21 @@ export function scrapeRomanianLeads(filters: {
       estimatedAnnualRevenueRon: 18500000,
       estimatedAnnualOpexRon: 1650000,
       topSpendCategories: ['Energie', 'Telecom', 'Servicii'],
-      estimatedAnnualSavingsMin: 72000,
-      estimatedAnnualSavingsMax: 125000,
-      opportunityScore: 95,
+      estimatedAnnualSavingsMin: 78000,
+      estimatedAnnualSavingsMax: 135000,
+      saveScore: 45,
+      saveScoreStatus: 'critical',
+      criticalCostLeaks: [
+        'Contracte de furnizare energie de șantier la tarif nesubvenționat',
+        'Telecomunicatii de flotă fără plafon de date'
+      ],
+      opportunityScore: 96,
       phone: '+40 744 550 912',
       email: 'conducere@danubius-construct.ro',
       website: 'www.danubius-construct.ro',
       status: 'new',
     },
+    // 8. Agricultură - Scor Bun / Optimizat (79%)
     {
       id: 'lead_ro_08',
       cui: 'RO27591042',
@@ -209,9 +262,14 @@ export function scrapeRomanianLeads(filters: {
       estimatedAnnualRevenueRon: 12800000,
       estimatedAnnualOpexRon: 890000,
       topSpendCategories: ['Energie', 'Telecom', 'Consumabile'],
-      estimatedAnnualSavingsMin: 38000,
-      estimatedAnnualSavingsMax: 64000,
-      opportunityScore: 87,
+      estimatedAnnualSavingsMin: 14000,
+      estimatedAnnualSavingsMax: 22000,
+      saveScore: 79,
+      saveScoreStatus: 'good',
+      criticalCostLeaks: [
+        'Optimizat recent, potențial minor pe birotică'
+      ],
+      opportunityScore: 68,
       phone: '+40 732 110 845',
       email: 'secretariat@banat-agro.ro',
       website: 'www.banat-agro.ro',
@@ -227,6 +285,19 @@ export function scrapeRomanianLeads(filters: {
       lead.city.toLowerCase() === filters.city.toLowerCase() ||
       lead.county.toLowerCase() === filters.city.toLowerCase();
 
-    return matchesIndustry && matchesCity;
+    let matchesScore = true;
+    if (filters.scoreFilter && filters.scoreFilter !== 'all') {
+      if (filters.scoreFilter === 'critical') {
+        matchesScore = lead.saveScore < 50;
+      } else if (filters.scoreFilter === 'poor') {
+        matchesScore = lead.saveScore >= 50 && lead.saveScore < 65;
+      } else if (filters.scoreFilter === 'moderate') {
+        matchesScore = lead.saveScore >= 65 && lead.saveScore < 75;
+      } else if (filters.scoreFilter === 'good') {
+        matchesScore = lead.saveScore >= 75;
+      }
+    }
+
+    return matchesIndustry && matchesCity && matchesScore;
   });
 }
