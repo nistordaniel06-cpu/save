@@ -430,7 +430,8 @@ export function SaveProvider({
     try {
       const user = supabaseUser || (await supabase.auth.getUser()).data.user;
       if (user) {
-        const { data: dbOrg, error: orgErr } = await supabase
+        // Step 1: Insert organization WITHOUT .select().single() to avoid RLS race condition before membership is created
+        const { error: orgErr } = await supabase
           .from('organizations')
           .insert({
             id: orgId,
@@ -442,28 +443,44 @@ export function SaveProvider({
             save_score: newOrg.saveScore,
             is_demo: false,
             currency: 'RON',
-          })
-          .select()
-          .single();
+          });
 
-        if (!orgErr) {
-          // Link member
-          await supabase.from('organization_members').insert({
+        if (orgErr) {
+          console.error('Supabase org insert error:', orgErr);
+          throw orgErr;
+        }
+
+        // Step 2: Insert organization membership
+        const { error: memErr } = await supabase
+          .from('organization_members')
+          .insert({
             organization_id: orgId,
             user_id: user.id,
             role: 'owner',
           });
+
+        if (memErr) {
+          console.error('Supabase member insert error:', memErr);
+          throw memErr;
         }
       }
     } catch (e) {
-      console.warn('Supabase organization insert fallback to local:', e);
+      console.warn('Supabase organization insert notice:', e);
     }
 
-    updateState((prev) => ({
-      ...prev,
-      organizations: [...prev.organizations, newOrg],
-      currentOrg: newOrg,
-    }));
+    updateState((prev) => {
+      const next = {
+        ...prev,
+        organizations: [...prev.organizations.filter(o => o.id !== newOrg.id), newOrg],
+        currentOrg: newOrg,
+      };
+      if (isDemoMode) {
+        saveDemoState(next);
+      } else {
+        saveRealState(next);
+      }
+      return next;
+    });
 
     return newOrg;
   };

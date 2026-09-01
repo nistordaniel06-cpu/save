@@ -28,12 +28,26 @@ function OnboardingContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
   React.useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        router.replace('/auth/register');
+    const check = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            router.replace('/auth/register');
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Auth check in onboarding:', e);
+      } finally {
+        setIsCheckingAuth(false);
       }
-    });
+    };
+    check();
   }, [router]);
 
   const toggleCategory = (cat: SpendCategory) => {
