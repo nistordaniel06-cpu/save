@@ -17,7 +17,8 @@ import {
   Plus,
   Zap,
   TrendingDown,
-  Target
+  Target,
+  Users
 } from 'lucide-react';
 import { useSave } from '@/lib/context';
 import { calculateSaveScore } from '@/lib/analytics/savings-calculator';
@@ -29,7 +30,12 @@ export function Sidebar() {
   const { currentOrg, contracts, opportunities, spendRecords, resetToDemo, organizations, switchOrganization } = useSave();
   const [orgDropdownOpen, setOrgDropdownOpen] = React.useState(false);
 
-  const saveScoreData = calculateSaveScore(428500, contracts, opportunities);
+  const totalCalculatedSpend = spendRecords.reduce((sum, s) => sum + s.amount, 0);
+  const totalAnnualSpend = totalCalculatedSpend > 0 
+    ? totalCalculatedSpend * (spendRecords.length >= 6 ? 2 : 12) 
+    : (currentOrg.isDemo ? 428500 : 0);
+
+  const saveScoreData = calculateSaveScore(totalAnnualSpend, contracts, opportunities);
 
   const navItems = [
     {
@@ -39,10 +45,17 @@ export function Sidebar() {
       badge: undefined,
     },
     {
+      label: 'Putere de Cumpărare',
+      href: '/dashboard/demand',
+      icon: Users,
+      badge: 'Demand Pools',
+      badgeVariant: 'purple' as const,
+    },
+    {
       label: 'Analiză Cheltuieli',
       href: '/dashboard/spend',
       icon: PieChart,
-      badge: '428k lei',
+      badge: totalAnnualSpend > 0 ? `${Math.round(totalAnnualSpend / 1000)}k lei` : undefined,
     },
     {
       label: 'Oportunități Economii',

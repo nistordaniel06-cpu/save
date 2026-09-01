@@ -22,9 +22,21 @@ import {
   VerifiedSavingsItem,
   AuditEvent,
   MarketBenchmark,
-  OptimizationStatus
+  VerifiedDemand,
+  DemandPool,
+  DemandPoolMember,
+  MarketplaceSupplier,
+  SupplierBid,
+  ClientOffer
 } from './types';
-import { processDocumentExtraction } from './ai/extractor';
+import { 
+  DEMO_VERIFIED_DEMANDS, 
+  DEMO_DEMAND_POOLS, 
+  DEMO_DEMAND_POOL_MEMBERS, 
+  DEMO_MARKETPLACE_SUPPLIERS, 
+  DEMO_SUPPLIER_BIDS, 
+  DEMO_CLIENT_OFFERS 
+} from './demand/demo-data';
 
 export interface AppState {
   currentOrg: Organization;
@@ -39,6 +51,12 @@ export interface AppState {
   verifiedSavings: VerifiedSavingsItem[];
   benchmarks: MarketBenchmark[];
   auditLogs: AuditEvent[];
+  verifiedDemands: VerifiedDemand[];
+  demandPools: DemandPool[];
+  demandPoolMembers: DemandPoolMember[];
+  marketplaceSuppliers: MarketplaceSupplier[];
+  supplierBids: SupplierBid[];
+  clientOffers: ClientOffer[];
 }
 
 const STORAGE_KEY = 'save_platform_state_v1';
@@ -48,7 +66,18 @@ export function getSavedState(): AppState | null {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        const defaults = getDefaultState();
+        return {
+          ...defaults,
+          ...parsed,
+          verifiedDemands: parsed.verifiedDemands || defaults.verifiedDemands,
+          demandPools: parsed.demandPools || defaults.demandPools,
+          demandPoolMembers: parsed.demandPoolMembers || defaults.demandPoolMembers,
+          marketplaceSuppliers: parsed.marketplaceSuppliers || defaults.marketplaceSuppliers,
+          supplierBids: parsed.supplierBids || defaults.supplierBids,
+          clientOffers: parsed.clientOffers || defaults.clientOffers,
+        };
       } catch (e) {
         console.error('Failed to parse saved SAVE state', e);
       }
@@ -119,6 +148,12 @@ export function getDefaultState(): AppState {
         createdAt: '2026-08-15T08:30:00Z',
       },
     ],
+    verifiedDemands: DEMO_VERIFIED_DEMANDS,
+    demandPools: DEMO_DEMAND_POOLS,
+    demandPoolMembers: DEMO_DEMAND_POOL_MEMBERS,
+    marketplaceSuppliers: DEMO_MARKETPLACE_SUPPLIERS,
+    supplierBids: DEMO_SUPPLIER_BIDS,
+    clientOffers: DEMO_CLIENT_OFFERS,
   };
 }
 

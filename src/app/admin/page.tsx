@@ -18,9 +18,13 @@ import {
   AlertTriangle,
   Lock,
   ChevronRight,
-  Globe
+  Globe,
+  Users,
+  TrendingUp,
+  Layers,
+  Plus
 } from 'lucide-react';
-import { OptimizationStatus } from '@/lib/types';
+import { OptimizationStatus, VerifiedDemandStatus, SpendCategory } from '@/lib/types';
 import { ExtractionReviewModal } from '@/components/documents/extraction-review-modal';
 
 export default function AdminPage() {
@@ -30,11 +34,25 @@ export default function AdminPage() {
     optimizationRequests, 
     opportunities, 
     updateOptimizationStatus,
-    verifyOptimizationSavings
+    verifyOptimizationSavings,
+    verifiedDemands,
+    demandPools,
+    demandPoolMembers,
+    supplierBids,
+    marketplaceSuppliers,
+    updateVerifiedDemandStatus,
+    createDemandPool,
+    selectWinningBidAndGenerateOffers
   } = useSave();
 
-  const [activeTab, setActiveTab] = useState<'requests' | 'documents' | 'benchmarks' | 'organizations'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'verified_demand' | 'demand_pools' | 'supplier_bids' | 'documents' | 'organizations'>('requests');
   const [reviewingDoc, setReviewingDoc] = useState<any>(null);
+
+  // Pool creation inline form state
+  const [newPoolTitle, setNewPoolTitle] = useState('');
+  const [newPoolCategory, setNewPoolCategory] = useState<SpendCategory>('Telecom');
+  const [newPoolServiceType, setNewPoolServiceType] = useState('Flotă SIM Voce & Date Mobile');
+  const [showNewPoolForm, setShowNewPoolForm] = useState(false);
 
   const pendingReviewDocs = documents.filter((d) => d.status === 'requires_review');
   const activeRequests = optimizationRequests.filter((r) => r.status !== 'savings_verified' && r.status !== 'completed');
@@ -126,18 +144,42 @@ export default function AdminPage() {
       </div>
 
       {/* Segmented Admin Tabs */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 pb-2 text-xs font-semibold">
+      <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 pb-2 text-xs font-semibold">
         <button
           onClick={() => setActiveTab('requests')}
-          className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+          className={`px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
             activeTab === 'requests' ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-600 hover:bg-zinc-100'
           }`}
         >
           Flux Cereri Optimizare ({optimizationRequests.length})
         </button>
         <button
+          onClick={() => setActiveTab('verified_demand')}
+          className={`px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
+            activeTab === 'verified_demand' ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-600 hover:bg-zinc-100'
+          }`}
+        >
+          Cerere Verificată ({verifiedDemands.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('demand_pools')}
+          className={`px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
+            activeTab === 'demand_pools' ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-600 hover:bg-zinc-100'
+          }`}
+        >
+          Demand Pools ({demandPools.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('supplier_bids')}
+          className={`px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
+            activeTab === 'supplier_bids' ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-600 hover:bg-zinc-100'
+          }`}
+        >
+          Oferte Furnizori ({supplierBids.length})
+        </button>
+        <button
           onClick={() => setActiveTab('documents')}
-          className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+          className={`px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
             activeTab === 'documents' ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-600 hover:bg-zinc-100'
           }`}
         >
@@ -145,11 +187,11 @@ export default function AdminPage() {
         </button>
         <button
           onClick={() => setActiveTab('organizations')}
-          className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+          className={`px-3.5 py-2 rounded-lg transition-all cursor-pointer ${
             activeTab === 'organizations' ? 'bg-zinc-900 text-white shadow-xs' : 'text-zinc-600 hover:bg-zinc-100'
           }`}
         >
-          Organizații Înregistrate ({organizations.length})
+          Organizații ({organizations.length})
         </button>
       </div>
 
@@ -239,6 +281,360 @@ export default function AdminPage() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tab 2: Verified Demand Management */}
+      {activeTab === 'verified_demand' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Gestiune Cereri Comerciale Verificate (Verified Demands)</CardTitle>
+                <CardDescription>
+                  Cereri derivate automat din facturi e-Factura și contracte semnate de IMM-uri.
+                </CardDescription>
+              </div>
+              <Badge variant="purple" size="sm">{verifiedDemands.length} cereri</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-zinc-600">
+                <thead className="bg-zinc-50 border-b border-zinc-200 text-[11px] font-semibold text-zinc-700 uppercase">
+                  <tr>
+                    <th className="px-4 py-3">Organizație & Categorie</th>
+                    <th className="px-4 py-3">Tip Serviciu & Furnizor Actual</th>
+                    <th className="px-4 py-3">Volum & Tarif</th>
+                    <th className="px-4 py-3">Cost Anual</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Acțiuni Admin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 font-sans">
+                  {verifiedDemands.map((demand) => (
+                    <tr key={demand.id} className="hover:bg-zinc-50/80">
+                      <td className="px-4 py-3.5">
+                        <p className="font-semibold text-zinc-900">{demand.organizationName || 'Nova Retail SRL'}</p>
+                        <Badge variant="default" size="sm" className="mt-0.5">{demand.category}</Badge>
+                      </td>
+
+                      <td className="px-4 py-3.5">
+                        <p className="font-medium text-zinc-900">{demand.serviceType}</p>
+                        <p className="text-[11px] text-zinc-400">Actual: {demand.incumbentSupplierName}</p>
+                      </td>
+
+                      <td className="px-4 py-3.5 font-mono">
+                        <p className="font-bold text-zinc-900">{demand.volume} {demand.unit}</p>
+                        {demand.currentUnitPrice && (
+                          <span className="text-[10px] text-zinc-500">
+                            {demand.currentUnitPrice} lei/{demand.unit}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3.5 font-mono">
+                        <p className="font-bold text-zinc-900">{demand.currentAnnualCost.toLocaleString('ro-RO')} lei</p>
+                        <span className="text-[10px] text-zinc-400">{demand.currentMonthlyCost.toLocaleString('ro-RO')} lei/lună</span>
+                      </td>
+
+                      <td className="px-4 py-3.5">
+                        <Badge 
+                          variant={
+                            demand.status === 'pooled' ? 'success' : 
+                            demand.status === 'pool_eligible' ? 'purple' : 
+                            demand.status === 'offer_available' ? 'success' : 'warning'
+                          }
+                          size="sm"
+                        >
+                          {demand.status}
+                        </Badge>
+                      </td>
+
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {demand.status === 'detected' && (
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => updateVerifiedDemandStatus(demand.id, 'verified')}
+                              className="h-7 text-xs px-2"
+                            >
+                              Validează
+                            </Button>
+                          )}
+
+                          {demand.status === 'verified' && (
+                            <Button
+                              size="sm"
+                              variant="purple"
+                              onClick={() => updateVerifiedDemandStatus(demand.id, 'pool_eligible')}
+                              className="h-7 text-xs px-2"
+                            >
+                              Setează Eligibil Pool
+                            </Button>
+                          )}
+
+                          {demand.status === 'pool_eligible' && (
+                            <span className="text-[11px] text-purple-700 font-semibold">Gata de agregare</span>
+                          )}
+                          {demand.status === 'pooled' && (
+                            <span className="text-[11px] text-emerald-700 font-semibold">Înscris în Pool</span>
+                          )}
+                          {demand.status === 'offer_available' && (
+                            <span className="text-[11px] text-emerald-600 font-bold">Ofertă emisă</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tab 3: Demand Pools Management */}
+      {activeTab === 'demand_pools' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Gestiune Demand Pools (Grupuri de Cumpărare IMM)</CardTitle>
+                <CardDescription>
+                  Volume agregate expuse furnizorilor conform pragului MIN_ANONYMOUS_POOL_MEMBERS = 3.
+                </CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="purple"
+                onClick={() => setShowNewPoolForm(!showNewPoolForm)}
+                className="gap-1.5 text-xs font-bold"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Creează Demand Pool Nou</span>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {showNewPoolForm && (
+              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200 space-y-3 text-xs">
+                <p className="font-bold text-purple-950">Inițiere Grup Nou de Cumpărare Agregată</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Categorie</label>
+                    <select
+                      value={newPoolCategory}
+                      onChange={(e) => setNewPoolCategory(e.target.value as SpendCategory)}
+                      className="w-full p-2 rounded-lg border border-purple-300 bg-white"
+                    >
+                      <option value="Telecom">Telecom</option>
+                      <option value="Curierat">Curierat</option>
+                      <option value="Software">Software</option>
+                      <option value="Energie">Energie</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-semibold block mb-1">Titlu Grup</label>
+                    <input
+                      type="text"
+                      value={newPoolTitle}
+                      onChange={(e) => setNewPoolTitle(e.target.value)}
+                      placeholder="ex: Grup IMM Abonamente Date Nelimitat"
+                      className="w-full p-2 rounded-lg border border-purple-300 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold block mb-1">Tip Serviciu</label>
+                    <input
+                      type="text"
+                      value={newPoolServiceType}
+                      onChange={(e) => setNewPoolServiceType(e.target.value)}
+                      placeholder="ex: Flotă SIM Voce & Date"
+                      className="w-full p-2 rounded-lg border border-purple-300 bg-white"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setShowNewPoolForm(false)}>
+                    Anulează
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="purple"
+                    disabled={!newPoolTitle}
+                    onClick={async () => {
+                      await createDemandPool({
+                        category: newPoolCategory,
+                        serviceType: newPoolServiceType,
+                        title: newPoolTitle,
+                        region: 'Național',
+                        currency: 'RON',
+                        status: 'building',
+                      });
+                      setShowNewPoolForm(false);
+                      setNewPoolTitle('');
+                    }}
+                  >
+                    Salvează Pool
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-zinc-600">
+                <thead className="bg-zinc-50 border-b border-zinc-200 text-[11px] font-semibold text-zinc-700 uppercase">
+                  <tr>
+                    <th className="px-4 py-3">Grup & Categorie</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Companii Membre</th>
+                    <th className="px-4 py-3">Volum Cumulat</th>
+                    <th className="px-4 py-3">Spend Anual Agregat</th>
+                    <th className="px-4 py-3 text-right">Control Licitare</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {demandPools.map((pool) => (
+                    <tr key={pool.id} className="hover:bg-zinc-50/80">
+                      <td className="px-4 py-3.5">
+                        <p className="font-semibold text-zinc-900">{pool.title}</p>
+                        <p className="text-[11px] text-zinc-400">{pool.serviceType} • {pool.region}</p>
+                      </td>
+
+                      <td className="px-4 py-3.5">
+                        <Badge 
+                          variant={
+                            pool.status === 'open_for_bids' ? 'warning' :
+                            pool.status === 'offers_ready' ? 'success' :
+                            pool.status === 'ready' ? 'purple' : 'default'
+                          } 
+                          size="sm"
+                        >
+                          {pool.status}
+                        </Badge>
+                      </td>
+
+                      <td className="px-4 py-3.5 font-mono font-bold text-zinc-900">
+                        {pool.totalCompanies} IMM-uri
+                        {pool.totalCompanies < 3 && (
+                          <span className="block text-[10px] text-amber-600 font-sans font-normal">Sub prag (min. 3)</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3.5 font-mono font-bold text-zinc-900">
+                        {pool.totalVolume}
+                      </td>
+
+                      <td className="px-4 py-3.5 font-mono font-bold text-emerald-600">
+                        ~{pool.totalCurrentAnnualSpend.toLocaleString('ro-RO')} lei
+                      </td>
+
+                      <td className="px-4 py-3.5 text-right">
+                        <span className="text-[11px] text-zinc-400">
+                          {pool.status === 'open_for_bids' ? 'Licitare activă în portal' : 'Administrat'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tab 4: Supplier Bids & Selection */}
+      {activeTab === 'supplier_bids' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Oferte Depuse de Furnizori & Selecție Câștigătoare</CardTitle>
+                <CardDescription>
+                  Compară cotațiile primite de la furnizori și emite automat oferte individuale membrilor.
+                </CardDescription>
+              </div>
+              <Badge variant="purple" size="sm">{supplierBids.length} oferte</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-zinc-600">
+                <thead className="bg-zinc-50 border-b border-zinc-200 text-[11px] font-semibold text-zinc-700 uppercase">
+                  <tr>
+                    <th className="px-4 py-3">Demand Pool</th>
+                    <th className="px-4 py-3">Furnizor Marketplace</th>
+                    <th className="px-4 py-3">Tarif Unitar</th>
+                    <th className="px-4 py-3">Valoare Totală Anuală</th>
+                    <th className="px-4 py-3">Durată & Volum</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Decizie SAVE Admin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {supplierBids.map((bid) => {
+                    const pool = demandPools.find((p) => p.id === bid.demandPoolId);
+
+                    return (
+                      <tr key={bid.id} className="hover:bg-zinc-50/80">
+                        <td className="px-4 py-3.5">
+                          <p className="font-semibold text-zinc-900">{pool?.title || 'Demand Pool'}</p>
+                          <Badge variant="default" size="sm" className="mt-0.5">{pool?.category}</Badge>
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <p className="font-bold text-zinc-900">{bid.marketplaceSupplierName}</p>
+                          <p className="text-[10px] text-zinc-400">{bid.slaSummary}</p>
+                        </td>
+
+                        <td className="px-4 py-3.5 font-mono font-bold text-zinc-900">
+                          {bid.pricePerUnit} lei / unitate
+                        </td>
+
+                        <td className="px-4 py-3.5 font-mono font-bold text-emerald-600">
+                          ~{bid.estimatedAnnualTotal.toLocaleString('ro-RO')} lei
+                        </td>
+
+                        <td className="px-4 py-3.5 font-mono text-zinc-700">
+                          {bid.contractDurationMonths} luni (min. {bid.minimumVolume})
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <Badge 
+                            variant={bid.status === 'selected' ? 'success' : bid.status === 'shortlisted' ? 'purple' : 'warning'} 
+                            size="sm"
+                          >
+                            {bid.status}
+                          </Badge>
+                        </td>
+
+                        <td className="px-4 py-3.5 text-right">
+                          {bid.status !== 'selected' ? (
+                            <Button
+                              size="sm"
+                              variant="emerald"
+                              onClick={() => selectWinningBidAndGenerateOffers(bid.id)}
+                              className="gap-1 h-7 text-xs font-bold"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Selectează & Emite Oferte</span>
+                            </Button>
+                          ) : (
+                            <span className="text-xs font-bold text-emerald-600 flex items-center justify-end gap-1">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Ofertă Câștigătoare</span>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

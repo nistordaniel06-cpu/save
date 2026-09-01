@@ -20,9 +20,16 @@ import {
   VerifiedSavingsItem, 
   AuditEvent,
   DocumentExtraction,
-  SpendCategory
+  SpendCategory,
+  VerifiedDemand,
+  VerifiedDemandStatus,
+  DemandPool,
+  DemandPoolMember,
+  MarketplaceSupplier,
+  SupplierBid,
+  ClientOffer
 } from './types';
-import { processDocumentExtraction } from './ai/extractor';
+import { detectVerifiedDemands } from './demand/demand-detector';
 import { calculateContractTimeline } from './analytics/contract-calculator';
 import { supabase } from './supabase/client';
 import { DEMO_ORG, DEMO_USER } from './demo-data';
@@ -38,6 +45,12 @@ interface SaveContextType {
   spendRecords: SpendRecord[];
   optimizationRequests: OptimizationRequest[];
   verifiedSavings: VerifiedSavingsItem[];
+  verifiedDemands: VerifiedDemand[];
+  demandPools: DemandPool[];
+  demandPoolMembers: DemandPoolMember[];
+  marketplaceSuppliers: MarketplaceSupplier[];
+  supplierBids: SupplierBid[];
+  clientOffers: ClientOffer[];
   auditLogs: AuditEvent[];
   isHydrated: boolean;
   isDemoMode: boolean;
@@ -64,6 +77,15 @@ interface SaveContextType {
     }
   ) => Promise<void>;
   verifyOptimizationSavings: (requestId: string, amountRon: number) => Promise<void>;
+  joinDemandPool: (verifiedDemandId: string, demandPoolId: string) => Promise<void>;
+  withdrawFromDemandPool: (verifiedDemandId: string, demandPoolId: string) => Promise<void>;
+  acceptClientOffer: (offerId: string) => Promise<void>;
+  rejectClientOffer: (offerId: string) => Promise<void>;
+  submitSupplierBid: (bidData: Omit<SupplierBid, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<SupplierBid>;
+  detectDemandsForCurrentOrg: () => Promise<VerifiedDemand[]>;
+  updateVerifiedDemandStatus: (demandId: string, newStatus: VerifiedDemandStatus) => Promise<void>;
+  createDemandPool: (poolData: Omit<DemandPool, 'id' | 'createdAt' | 'updatedAt' | 'totalCompanies' | 'totalVolume' | 'totalCurrentAnnualSpend'>) => Promise<DemandPool>;
+  selectWinningBidAndGenerateOffers: (bidId: string) => Promise<void>;
   addContract: (contract: Omit<ContractItem, 'id' | 'organizationId' | 'createdAt'>) => Promise<ContractItem>;
   resetToDemo: () => void;
   signOut: () => Promise<void>;
@@ -933,12 +955,459 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
 
   const isDemoMode = state.currentOrg.isDemo;
 
+  const joinDemandPool = async (verifiedDemandId: string, demandPoolId: string) => {
+    const isRealOrg = !state.currentOrg.isDemo;
+    const now = new Date().toISOString();
+
+    if (isRealOrg) {
+      try {
+        await supabase.from('demand_pool_members').upsert({
+          demand_pool_id: demandPoolId,
+          verified_demand_id: verifiedDemandId,
+          organization_id: state.currentOrg.id,
+          consent_status: 'accepted',
+          joined_at: now,
+        }, { onConflict: 'demand_pool_id,verified_demand_id' });
+
+        await supabase.from('verified_demands').update({
+          status: 'pooled',
+        }).eq('id', verifiedDemandId);
+      } catch (e) {
+        console.warn('Supabase join pool notice:', e);
+      }
+    }
+
+    updateState((prev) => {
+      const existingMember = prev.demandPoolMembers.find(
+        (m) => m.demandPoolId === demandPoolId && m.verifiedDemandId === verifiedDemandId
+      );
+
+      let updatedMembers: DemandPoolMember[];
+      if (existingMember) {
+        updatedMembers = prev.demandPoolMembers.map((m) =>
+          m.id === existingMember.id ? { ...m, consentStatus: 'accepted' as const, joinedAt: now } : m
+        );
+      } else {
+        const newMember: DemandPoolMember = {
+          id: `dpm_${Date.now()}`,
+          demandPoolId,
+          verifiedDemandId,
+          organizationId: state.currentOrg.id,
+          organizationName: state.currentOrg.name,
+          consentStatus: 'accepted',
+          joinedAt: now,
+        };
+        updatedMembers = [...prev.demandPoolMembers, newMember];
+      }
+
+      const updatedDemands = prev.verifiedDemands.map((d) =>
+        d.id === verifiedDemandId ? { ...d, status: 'pooled' as const } : d
+      );
+
+      const targetDemand = updatedDemands.find((d) => d.id === verifiedDemandId);
+      const additionalVol = targetDemand?.volume || 0;
+      const additionalSpend = targetDemand?.currentAnnualCost || 0;
+
+      const updatedPools = prev.demandPools.map((p) => {
+        if (p.id === demandPoolId) {
+          const poolMembers = updatedMembers.filter((m) => m.demandPoolId === demandPoolId && m.consentStatus === 'accepted');
+          const isAlreadyCounted = existingMember?.consentStatus === 'accepted';
+          return {
+            ...p,
+            totalCompanies: Math.max(p.totalCompanies, poolMembers.length),
+            totalVolume: p.totalVolume + (isAlreadyCounted ? 0 : additionalVol),
+            totalCurrentAnnualSpend: p.totalCurrentAnnualSpend + (isAlreadyCounted ? 0 : additionalSpend),
+            status: (poolMembers.length >= 3 || p.totalCompanies >= 3) && p.status === 'building' ? 'ready' as const : p.status,
+          };
+        }
+        return p;
+      });
+
+      return {
+        ...prev,
+        demandPoolMembers: updatedMembers,
+        verifiedDemands: updatedDemands,
+        demandPools: updatedPools,
+      };
+    });
+  };
+
+  const withdrawFromDemandPool = async (verifiedDemandId: string, demandPoolId: string) => {
+    const isRealOrg = !state.currentOrg.isDemo;
+    const now = new Date().toISOString();
+
+    if (isRealOrg) {
+      try {
+        await supabase.from('demand_pool_members').update({
+          consent_status: 'withdrawn',
+          left_at: now,
+        }).match({ demand_pool_id: demandPoolId, verified_demand_id: verifiedDemandId });
+
+        await supabase.from('verified_demands').update({
+          status: 'pool_eligible',
+        }).eq('id', verifiedDemandId);
+      } catch (e) {
+        console.warn('Supabase withdraw pool notice:', e);
+      }
+    }
+
+    updateState((prev) => {
+      const updatedMembers = prev.demandPoolMembers.map((m) =>
+        m.demandPoolId === demandPoolId && m.verifiedDemandId === verifiedDemandId
+          ? { ...m, consentStatus: 'withdrawn' as const, leftAt: now }
+          : m
+      );
+
+      const updatedDemands = prev.verifiedDemands.map((d) =>
+        d.id === verifiedDemandId ? { ...d, status: 'pool_eligible' as const } : d
+      );
+
+      return {
+        ...prev,
+        demandPoolMembers: updatedMembers,
+        verifiedDemands: updatedDemands,
+      };
+    });
+  };
+
+  const acceptClientOffer = async (offerId: string) => {
+    const offer = state.clientOffers.find((o) => o.id === offerId);
+    if (!offer) return;
+    const now = new Date().toISOString();
+    const isRealOrg = !state.currentOrg.isDemo;
+
+    if (isRealOrg) {
+      try {
+        await supabase.from('client_offers').update({
+          status: 'accepted',
+          accepted_at: now,
+        }).eq('id', offerId);
+
+        await supabase.from('verified_demands').update({
+          status: 'accepted',
+        }).eq('id', offer.verifiedDemandId);
+      } catch (e) {
+        console.warn('Supabase accept offer notice:', e);
+      }
+    }
+
+    const reqId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `opt_req_${Date.now()}`;
+    const newReq: OptimizationRequest = {
+      id: reqId,
+      organizationId: state.currentOrg.id,
+      organizationName: state.currentOrg.name,
+      supplierName: offer.supplierName || 'Furnizor Agregat Partener',
+      requestedBy: state.currentUser.id,
+      requestedByName: state.currentUser.fullName,
+      status: 'accepted',
+      initialAnnualCost: offer.currentAnnualCost,
+      achievedAnnualSavings: offer.estimatedSavings,
+      clientNotes: `Ofertă agregată acceptată prin Demand Pool. Economie estimată: ${offer.estimatedSavings.toLocaleString('ro-RO')} lei/an.`,
+      operatorNotes: 'Clientul a acceptat oferta agregată. SAVE pregătește contractul de aderare.',
+      counterOfferDetails: {
+        proposedSupplier: offer.supplierName || 'Furnizor Partener',
+        newAnnualCost: offer.proposedAnnualCost,
+        estimatedSavings: offer.estimatedSavings,
+        contractDurationMonths: offer.contractDurationMonths,
+        termsSummary: offer.summary,
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    updateState((prev) => ({
+      ...prev,
+      clientOffers: prev.clientOffers.map((o) =>
+        o.id === offerId ? { ...o, status: 'accepted' as const, acceptedAt: now } : o
+      ),
+      verifiedDemands: prev.verifiedDemands.map((d) =>
+        d.id === offer.verifiedDemandId ? { ...d, status: 'accepted' as const } : d
+      ),
+      optimizationRequests: [newReq, ...prev.optimizationRequests],
+    }));
+  };
+
+  const rejectClientOffer = async (offerId: string) => {
+    const offer = state.clientOffers.find((o) => o.id === offerId);
+    if (!offer) return;
+    const now = new Date().toISOString();
+    const isRealOrg = !state.currentOrg.isDemo;
+
+    if (isRealOrg) {
+      try {
+        await supabase.from('client_offers').update({
+          status: 'rejected',
+          rejected_at: now,
+        }).eq('id', offerId);
+      } catch (e) {
+        console.warn('Supabase reject offer notice:', e);
+      }
+    }
+
+    updateState((prev) => ({
+      ...prev,
+      clientOffers: prev.clientOffers.map((o) =>
+        o.id === offerId ? { ...o, status: 'rejected' as const, rejectedAt: now } : o
+      ),
+    }));
+  };
+
+  const submitSupplierBid = async (
+    bidData: Omit<SupplierBid, 'id' | 'createdAt' | 'updatedAt' | 'status'>
+  ): Promise<SupplierBid> => {
+    const bidId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `bid_${Date.now()}`;
+    const now = new Date().toISOString();
+    const newBid: SupplierBid = {
+      ...bidData,
+      id: bidId,
+      status: 'submitted',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    if (!state.currentOrg.isDemo) {
+      try {
+        await supabase.from('supplier_bids').insert({
+          id: bidId,
+          demand_pool_id: bidData.demandPoolId,
+          marketplace_supplier_id: bidData.marketplaceSupplierId,
+          pricing_model: bidData.pricingModel,
+          price_per_unit: bidData.pricePerUnit,
+          estimated_monthly_total: bidData.estimatedMonthlyTotal,
+          estimated_annual_total: bidData.estimatedAnnualTotal,
+          contract_duration_months: bidData.contractDurationMonths,
+          minimum_volume: bidData.minimumVolume,
+          sla_summary: bidData.slaSummary,
+          benefits: bidData.benefits,
+          conditions: bidData.conditions,
+          attachment_url: bidData.attachmentUrl,
+          valid_until: bidData.validUntil,
+          status: 'submitted',
+        });
+      } catch (e) {
+        console.warn('Supabase submit bid notice:', e);
+      }
+    }
+
+    updateState((prev) => ({
+      ...prev,
+      supplierBids: [newBid, ...prev.supplierBids],
+    }));
+
+    return newBid;
+  };
+
+  const detectDemandsForCurrentOrg = async (): Promise<VerifiedDemand[]> => {
+    const detected = detectVerifiedDemands({
+      organizationId: state.currentOrg.id,
+      organizationName: state.currentOrg.name,
+      contracts: state.contracts.filter((c) => c.organizationId === state.currentOrg.id),
+      spendRecords: state.spendRecords.filter((s) => s.organizationId === state.currentOrg.id),
+      documents: state.documents.filter((d) => d.organizationId === state.currentOrg.id),
+    });
+
+    updateState((prev) => {
+      const existingIds = new Set(prev.verifiedDemands.map((d) => d.id));
+      const newOnly = detected.filter((d) => !existingIds.has(d.id));
+      return {
+        ...prev,
+        verifiedDemands: [...newOnly, ...prev.verifiedDemands],
+      };
+    });
+
+    return detected;
+  };
+
+  const updateVerifiedDemandStatus = async (demandId: string, newStatus: VerifiedDemandStatus) => {
+    const isRealOrg = !state.currentOrg.isDemo;
+    const now = new Date().toISOString();
+
+    if (isRealOrg) {
+      try {
+        await supabase.from('verified_demands').update({
+          status: newStatus,
+          reviewed_by: state.currentUser.fullName,
+          reviewed_at: now,
+        }).eq('id', demandId);
+      } catch (e) {
+        console.warn('Supabase demand status update notice:', e);
+      }
+    }
+
+    updateState((prev) => ({
+      ...prev,
+      verifiedDemands: prev.verifiedDemands.map((d) =>
+        d.id === demandId
+          ? {
+              ...d,
+              status: newStatus,
+              reviewedBy: state.currentUser.fullName,
+              reviewedAt: now,
+              updatedAt: now,
+            }
+          : d
+      ),
+    }));
+  };
+
+  const createDemandPool = async (
+    poolData: Omit<DemandPool, 'id' | 'createdAt' | 'updatedAt' | 'totalCompanies' | 'totalVolume' | 'totalCurrentAnnualSpend'>
+  ): Promise<DemandPool> => {
+    const poolId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `pool_${Date.now()}`;
+    const now = new Date().toISOString();
+    const newPool: DemandPool = {
+      ...poolData,
+      id: poolId,
+      totalCompanies: 0,
+      totalVolume: 0,
+      totalCurrentAnnualSpend: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    if (!state.currentOrg.isDemo) {
+      try {
+        await supabase.from('demand_pools').insert({
+          id: poolId,
+          category: poolData.category,
+          subcategory: poolData.subcategory,
+          service_type: poolData.serviceType,
+          title: poolData.title,
+          region: poolData.region,
+          currency: poolData.currency,
+          status: poolData.status,
+          bidding_starts_at: poolData.biddingStartsAt,
+          bidding_ends_at: poolData.biddingEndsAt,
+        });
+      } catch (e) {
+        console.warn('Supabase create pool notice:', e);
+      }
+    }
+
+    updateState((prev) => ({
+      ...prev,
+      demandPools: [newPool, ...prev.demandPools],
+    }));
+
+    return newPool;
+  };
+
+  const selectWinningBidAndGenerateOffers = async (bidId: string) => {
+    const bid = state.supplierBids.find((b) => b.id === bidId);
+    if (!bid) return;
+    const pool = state.demandPools.find((p) => p.id === bid.demandPoolId);
+    if (!pool) return;
+
+    const isRealOrg = !state.currentOrg.isDemo;
+    const now = new Date().toISOString();
+
+    const updatedBids = state.supplierBids.map((b) => {
+      if (b.demandPoolId === bid.demandPoolId) {
+        return {
+          ...b,
+          status: b.id === bidId ? ('selected' as const) : ('rejected' as const),
+          updatedAt: now,
+        };
+      }
+      return b;
+    });
+
+    const poolMembers = state.demandPoolMembers.filter(
+      (m) => m.demandPoolId === pool.id && m.consentStatus === 'accepted'
+    );
+
+    const newOffers: ClientOffer[] = [];
+    const updatedDemands = state.verifiedDemands.map((demand) => {
+      const isMember = poolMembers.some((m) => m.verifiedDemandId === demand.id);
+      if (isMember) {
+        const proposedAnnual = Math.round(bid.pricePerUnit * demand.volume * 12);
+        const estimatedSavings = Math.max(0, demand.currentAnnualCost - proposedAnnual);
+        const savingsPercentage = demand.currentAnnualCost > 0
+          ? Number(((estimatedSavings / demand.currentAnnualCost) * 100).toFixed(1))
+          : 0;
+
+        const offerId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `offer_${Date.now()}_${demand.organizationId}`;
+        const offer: ClientOffer = {
+          id: offerId,
+          organizationId: demand.organizationId,
+          verifiedDemandId: demand.id,
+          demandPoolId: pool.id,
+          supplierBidId: bid.id,
+          supplierName: bid.marketplaceSupplierName || 'Furnizor Agregat Partener',
+          currentAnnualCost: demand.currentAnnualCost,
+          proposedAnnualCost: proposedAnnual,
+          estimatedSavings,
+          savingsPercentage,
+          proposedUnitPrice: bid.pricePerUnit,
+          unit: demand.unit,
+          volume: demand.volume,
+          contractDurationMonths: bid.contractDurationMonths,
+          summary: `Ofertă colectivă obținută prin Demand Pool ${pool.title}. Tarif negociat la ${bid.pricePerUnit} lei/${demand.unit}/lună garantat pe ${bid.contractDurationMonths} luni.`,
+          validUntil: bid.validUntil,
+          status: 'offered',
+          createdAt: now,
+        };
+        newOffers.push(offer);
+
+        return {
+          ...demand,
+          status: 'offer_available' as const,
+          updatedAt: now,
+        };
+      }
+      return demand;
+    });
+
+    const updatedPools = state.demandPools.map((p) =>
+      p.id === pool.id ? { ...p, status: 'offers_ready' as const, updatedAt: now } : p
+    );
+
+    if (isRealOrg) {
+      try {
+        await supabase.from('supplier_bids').update({ status: 'selected' }).eq('id', bidId);
+        await supabase.from('demand_pools').update({ status: 'offers_ready' }).eq('id', pool.id);
+        for (const off of newOffers) {
+          await supabase.from('client_offers').insert({
+            id: off.id,
+            organization_id: off.organizationId,
+            verified_demand_id: off.verifiedDemandId,
+            demand_pool_id: off.demandPoolId,
+            supplier_bid_id: off.supplierBidId,
+            current_annual_cost: off.currentAnnualCost,
+            proposed_annual_cost: off.proposedAnnualCost,
+            estimated_savings: off.estimatedSavings,
+            savings_percentage: off.savingsPercentage,
+            proposed_unit_price: off.proposedUnitPrice,
+            contract_duration_months: off.contractDurationMonths,
+            summary: off.summary,
+            valid_until: off.validUntil,
+            status: 'offered',
+          });
+          await supabase.from('verified_demands').update({ status: 'offer_available' }).eq('id', off.verifiedDemandId);
+        }
+      } catch (e) {
+        console.warn('Supabase select winning bid notice:', e);
+      }
+    }
+
+    updateState((prev) => ({
+      ...prev,
+      supplierBids: updatedBids,
+      demandPools: updatedPools,
+      verifiedDemands: updatedDemands,
+      clientOffers: [...newOffers, ...prev.clientOffers],
+    }));
+  };
+
   const orgFilteredDocuments = state.documents.filter((d) => d.organizationId === state.currentOrg.id);
   const orgFilteredContracts = state.contracts.filter((c) => c.organizationId === state.currentOrg.id);
   const orgFilteredOpportunities = state.opportunities.filter((o) => o.organizationId === state.currentOrg.id);
   const orgFilteredSpendRecords = state.spendRecords.filter((s) => s.organizationId === state.currentOrg.id);
   const orgFilteredRequests = state.optimizationRequests.filter((r) => r.organizationId === state.currentOrg.id);
   const orgFilteredVerifiedSavings = state.verifiedSavings.filter((v) => v.organizationId === state.currentOrg.id);
+  const orgFilteredDemands = (state.verifiedDemands || []).filter((d) => d.organizationId === state.currentOrg.id);
+  const orgFilteredPoolMembers = (state.demandPoolMembers || []).filter((m) => m.organizationId === state.currentOrg.id);
+  const orgFilteredOffers = (state.clientOffers || []).filter((o) => o.organizationId === state.currentOrg.id);
 
   return (
     <SaveContext.Provider
@@ -953,6 +1422,12 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         spendRecords: orgFilteredSpendRecords,
         optimizationRequests: orgFilteredRequests,
         verifiedSavings: orgFilteredVerifiedSavings,
+        verifiedDemands: orgFilteredDemands,
+        demandPools: state.demandPools || [],
+        demandPoolMembers: orgFilteredPoolMembers,
+        marketplaceSuppliers: state.marketplaceSuppliers || [],
+        supplierBids: state.supplierBids || [],
+        clientOffers: orgFilteredOffers,
         auditLogs: state.auditLogs,
         isHydrated,
         isDemoMode,
@@ -965,6 +1440,15 @@ export function SaveProvider({ children }: { children: React.ReactNode }) {
         createOptimizationRequest,
         updateOptimizationStatus,
         verifyOptimizationSavings,
+        joinDemandPool,
+        withdrawFromDemandPool,
+        acceptClientOffer,
+        rejectClientOffer,
+        submitSupplierBid,
+        detectDemandsForCurrentOrg,
+        updateVerifiedDemandStatus,
+        createDemandPool,
+        selectWinningBidAndGenerateOffers,
         addContract,
         resetToDemo,
         signOut,

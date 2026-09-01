@@ -81,11 +81,11 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-black text-zinc-950 tracking-tight leading-[1.08]">
-          SAVE găsește unde firma ta plătește prea mult.
+          Nu negociezi singur. SAVE agregă puterea de cumpărare a IMM-urilor.
         </h1>
 
         <p className="text-base sm:text-xl text-zinc-600 max-w-3xl mx-auto leading-relaxed">
-          Încarcă facturile și contractele. Analizăm costurile, identificăm oportunitățile de economisire și te ajutăm să obții condiții mai bune.
+          SAVE agregă cererea a zeci de IMM-uri din România pentru a obține prețuri corporate la telecom, curierat și software prin licitații directe și anonime.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
@@ -214,37 +214,59 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Step 1 */}
-          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center font-mono font-bold text-sm text-zinc-900 border border-zinc-200">
+          <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-zinc-100 flex items-center justify-center font-mono font-bold text-xs text-zinc-900 border border-zinc-200">
               01
             </div>
-            <h3 className="text-base font-bold text-zinc-900">Încarcă Facturile & Contractele</h3>
-            <p className="text-xs text-zinc-600 leading-relaxed">
-              Tragi fișierele PDF sau scanările. Pipeline-ul nostru AI extrage automat furnizorul, costurile, perioadele de facturare și clauzele de preaviz.
+            <h3 className="text-sm font-bold text-zinc-900">Încarcă documentele</h3>
+            <p className="text-[11px] text-zinc-600 leading-relaxed">
+              Tragi facturile PDF/scanate sau fișierele e-Factura XML. Extracție automatizată sigură.
             </p>
           </div>
 
           {/* Step 2 */}
-          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center font-mono font-bold text-sm text-emerald-800 border border-emerald-200">
+          <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center font-mono font-bold text-xs text-emerald-800 border border-emerald-200">
               02
             </div>
-            <h3 className="text-base font-bold text-zinc-900">Primești Raportul de Economii</h3>
-            <p className="text-xs text-zinc-600 leading-relaxed">
-              Comparăm tarifele tale cu benchmark-urile reale B2B din România și îți arătăm exact unde plătești peste mediana pieței și ce contracte expiră curând.
+            <h3 className="text-sm font-bold text-zinc-900">SAVE detectează cererea reală</h3>
+            <p className="text-[11px] text-zinc-600 leading-relaxed">
+              Identificăm volumele, prețul unitar actual, ferestrele de preaviz și furnizorii existenți.
             </p>
           </div>
 
           {/* Step 3 */}
-          <div className="p-6 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 flex items-center justify-center font-mono font-bold text-sm text-white">
+          <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center font-mono font-bold text-xs text-purple-800 border border-purple-200">
               03
             </div>
-            <h3 className="text-base font-bold text-zinc-900">Apeși „Redu costul”</h3>
-            <p className="text-xs text-zinc-600 leading-relaxed">
-              Echipa SAVE renegociază contractele sau îți pune la dispoziție oferte alternative pre-negociate. Plătești comision doar dacă obții economii reale.
+            <h3 className="text-sm font-bold text-zinc-900">Intri în Demand Pool</h3>
+            <p className="text-[11px] text-zinc-600 leading-relaxed">
+              Volumul tău se cumulează anonim cu alte companii pentru a forma o cerere colectivă masivă.
+            </p>
+          </div>
+
+          {/* Step 4 */}
+          <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center font-mono font-bold text-xs text-blue-800 border border-blue-200">
+              04
+            </div>
+            <h3 className="text-sm font-bold text-zinc-900">Furnizorii licitează</h3>
+            <p className="text-[11px] text-zinc-600 leading-relaxed">
+              Furnizori de top concurează pe volumul total, oferind tarife corporate imposibil de obținut individual.
+            </p>
+          </div>
+
+          {/* Step 5 */}
+          <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-xs space-y-2.5">
+            <div className="w-9 h-9 rounded-xl bg-zinc-900 flex items-center justify-center font-mono font-bold text-xs text-white">
+              05
+            </div>
+            <h3 className="text-sm font-bold text-zinc-900">Semnezi cu economii garantate</h3>
+            <p className="text-[11px] text-zinc-600 leading-relaxed">
+              Primești oferta finală validată, aprobi noul tarif și economisești direct pe cheltuielile lunare.
             </p>
           </div>
         </div>

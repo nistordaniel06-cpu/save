@@ -264,3 +264,164 @@ export interface SaveScoreBreakdown {
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
   headline: string;
 }
+
+// ==========================================
+// SAVE V2: VERIFIED DEMAND & DEMAND NETWORK
+// ==========================================
+
+export type VerifiedDemandStatus = 
+  | 'detected' 
+  | 'needs_review' 
+  | 'verified' 
+  | 'pool_eligible' 
+  | 'pooled' 
+  | 'offer_available' 
+  | 'accepted' 
+  | 'rejected' 
+  | 'completed';
+
+export type DemandPoolStatus = 
+  | 'building' 
+  | 'ready' 
+  | 'open_for_bids' 
+  | 'evaluating' 
+  | 'offers_ready' 
+  | 'closed';
+
+export type PoolConsentStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+
+export type SupplierBidStatus = 'draft' | 'submitted' | 'shortlisted' | 'rejected' | 'selected' | 'expired';
+
+export type ClientOfferStatus = 'offered' | 'viewed' | 'accepted' | 'rejected' | 'expired';
+
+export interface VerifiedDemand {
+  id: string;
+  organizationId: string;
+  organizationName?: string;
+  sourceDocumentId?: string;
+  sourceContractId?: string;
+  sourceOpportunityId?: string;
+  category: SpendCategory;
+  subcategory?: string;
+  serviceType: string; // e.g. "Flotă SIM Voce & Date", "Curierat Colete Național"
+  incumbentSupplierId?: string;
+  incumbentSupplierName: string;
+  currentMonthlyCost: number;
+  currentAnnualCost: number;
+  volume: number; // e.g. 24, 1500
+  unit: string; // "SIM", "line", "parcel", "shipment", "seat", "license"
+  currentUnitPrice?: number;
+  contractEndDate?: string;
+  noticeDeadline?: string;
+  eligibleFrom?: string;
+  confidenceScore: number;
+  status: VerifiedDemandStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DemandPool {
+  id: string;
+  category: SpendCategory;
+  subcategory?: string;
+  serviceType: string;
+  title: string;
+  region: string;
+  currency: string;
+  status: DemandPoolStatus;
+  totalCompanies: number;
+  totalVolume: number;
+  totalCurrentAnnualSpend: number;
+  biddingStartsAt?: string;
+  biddingEndsAt?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DemandPoolMember {
+  id: string;
+  demandPoolId: string;
+  verifiedDemandId: string;
+  organizationId: string;
+  organizationName?: string;
+  consentStatus: PoolConsentStatus;
+  joinedAt: string;
+  leftAt?: string;
+}
+
+export interface MarketplaceSupplier {
+  id: string;
+  companyName: string;
+  cui?: string;
+  website?: string;
+  categories: SpendCategory[];
+  contactEmail: string;
+  verified: boolean;
+  status: 'pending' | 'active' | 'suspended';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupplierBid {
+  id: string;
+  demandPoolId: string;
+  marketplaceSupplierId: string;
+  marketplaceSupplierName?: string;
+  pricingModel: string;
+  pricePerUnit: number;
+  estimatedMonthlyTotal: number;
+  estimatedAnnualTotal: number;
+  contractDurationMonths: number;
+  minimumVolume: number;
+  slaSummary?: string;
+  benefits?: string[];
+  conditions?: string;
+  attachmentUrl?: string;
+  validUntil?: string;
+  status: SupplierBidStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientOffer {
+  id: string;
+  organizationId: string;
+  verifiedDemandId: string;
+  demandPoolId: string;
+  supplierBidId: string;
+  supplierName?: string;
+  currentAnnualCost: number;
+  proposedAnnualCost: number;
+  estimatedSavings: number;
+  savingsPercentage: number;
+  proposedUnitPrice: number;
+  unit: string;
+  volume: number;
+  contractDurationMonths: number;
+  summary: string;
+  validUntil?: string;
+  status: ClientOfferStatus;
+  viewedAt?: string;
+  acceptedAt?: string;
+  rejectedAt?: string;
+  createdAt: string;
+}
+
+export interface AnonymousDemandPool {
+  poolId: string;
+  category: SpendCategory;
+  subcategory?: string;
+  serviceType: string;
+  title: string;
+  region: string;
+  currency: string;
+  status: DemandPoolStatus;
+  totalCompanies: number;
+  totalVolume: number;
+  approximateAnnualSpend: number;
+  biddingStartsAt?: string;
+  biddingEndsAt?: string;
+}
